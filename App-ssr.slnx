@@ -1,0 +1,6 @@
+<Solution>
+  <Project Path="docker-compose.dcproj">
+    <Build />
+  </Project>
+  <Project Path="Web/Web.csproj" Id="72bd605f-eaea-4ba2-8a7e-db56473fcd7d" />
+</Solution>
