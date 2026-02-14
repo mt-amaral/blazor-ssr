@@ -6,6 +6,7 @@ using Web.Components;
 using Web.Components.Account;
 using Web.Context;
 using Web.Entity;
+using Web.Entity.Identity;
 
 var builder = WebApplication.CreateBuilder(args);
 

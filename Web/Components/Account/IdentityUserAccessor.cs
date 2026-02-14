@@ -1,5 +1,6 @@
 using Microsoft.AspNetCore.Identity;
 using Web.Entity;
+using Web.Entity.Identity;
 
 namespace Web.Components.Account
 {

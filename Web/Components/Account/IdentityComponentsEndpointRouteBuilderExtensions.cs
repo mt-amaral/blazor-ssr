@@ -9,6 +9,7 @@ using Microsoft.Extensions.Primitives;
 using Web.Components.Account.Pages;
 using Web.Components.Account.Pages.Manage;
 using Web.Entity;
+using Web.Entity.Identity;
 
 namespace Microsoft.AspNetCore.Routing
 {
