@@ -7,7 +7,7 @@ using Web.Services.Abstractions;
 
 namespace Web.Services;
 
-public class AccountService(ApplicationDbContext context, UserManager<User> userManager) :  IAccountService
+public class AccountService(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInMannger) :  IAccountService
 {
     
     public async Task<(Response<string?>, short)> RegisterAsync(RegisterInDto request)
@@ -35,4 +35,54 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
             return (new Response<string?>(null, $"Erro na criação de usuário: {request.Email}"), 400);
         }
     }
+    
+    public async Task<(Response<LoginOutDto?>, short)> LoginAsync(LoginInDto request)
+    {
+        var user = await userManager.FindByEmailAsync(request.Email);
+        if (user is null)
+            return (new Response<LoginOutDto?>(null, "Credenciais inválidas"), 400);
+
+        var result = await signInMannger.PasswordSignInAsync(
+            user.UserName!, request.Password, request.RememberMe, lockoutOnFailure: false);
+
+        if (result.Succeeded)
+        {
+            var dto = new LoginOutDto(
+                Id: 0,                       // ajuste se tiver user.Id
+                FullName: "",                // ajuste se tiver nome
+                Email: user.Email ?? request.Email
+            );
+
+            return (new Response<LoginOutDto?>(dto, "OK"), 200);
+        }
+
+        if (result.RequiresTwoFactor)
+        {
+            var dto = new LoginOutDto(
+                Id: 0,
+                FullName: "",
+                Email: user.Email ?? request.Email,
+                RequiresTwoFactor: true
+            );
+            
+            return (new Response<LoginOutDto?>(dto, "Requer 2FA"), 200);
+        }
+
+        if (result.IsLockedOut)
+        {
+            var dto = new LoginOutDto(
+                Id: 0,
+                FullName: "",
+                Email: user.Email ?? request.Email,
+                IsLockedOut: true
+            );
+
+            return (new Response<LoginOutDto?>(dto, "Conta bloqueada"), 200);
+        }
+
+        return (new Response<LoginOutDto?>(null, "Credenciais inválidas"), 400);
+    }
+    
+    public Task Logout() => signInMannger.SignOutAsync();
+    
 }

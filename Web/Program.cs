@@ -14,8 +14,6 @@ var builder = WebApplication.CreateBuilder(args);
 
 
 builder.Services.AddMudServices();
-
-
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
 
