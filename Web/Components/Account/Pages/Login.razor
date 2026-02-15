@@ -21,7 +21,6 @@
 
 <MudGrid>
     <MudItem md="6">
-        <StatusMessage Message="@errorMessage" />
         <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
             <DataAnnotationsValidator />
 
@@ -58,7 +57,6 @@
     <MudItem md="6">
         <MudText GutterBottom="true" Typo="Typo.body1">Use another service to log in.</MudText>
 
-        <ExternalLoginPicker />
     </MudItem>
 </MudGrid>
 
