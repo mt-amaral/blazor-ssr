@@ -1,8 +1,8 @@
 using Microsoft.AspNetCore.Identity;
-using Web.Entity;
+using Web.Components.Account;
 using Web.Entity.Identity;
 
-namespace Web.Components.Account
+namespace Web.Security
 {
     internal sealed class IdentityUserAccessor(UserManager<User> userManager, IdentityRedirectManager redirectManager)
     {

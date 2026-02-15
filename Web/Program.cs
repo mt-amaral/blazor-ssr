@@ -7,6 +7,7 @@ using Web.Components.Account;
 using Web.Context;
 using Web.Entity;
 using Web.Entity.Identity;
+using Web.Security;
 using Web.Services;
 using Web.Services.Abstractions;
 
@@ -44,7 +45,6 @@ builder.Services.AddIdentityCore<User>(options => options.SignIn.RequireConfirme
     .AddSignInManager()
     .AddDefaultTokenProviders();
 
-builder.Services.AddSingleton<IEmailSender<User>, IdentityNoOpEmailSender>();
 
 var app = builder.Build();
 
