@@ -7,6 +7,8 @@ using Web.Components.Account;
 using Web.Context;
 using Web.Entity;
 using Web.Entity.Identity;
+using Web.Services;
+using Web.Services.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -21,6 +23,12 @@ builder.Services.AddCascadingAuthenticationState();
 builder.Services.AddScoped<IdentityUserAccessor>();
 builder.Services.AddScoped<IdentityRedirectManager>();
 builder.Services.AddScoped<AuthenticationStateProvider, IdentityRevalidatingAuthenticationStateProvider>();
+
+
+// services
+builder.Services.AddScoped<IAccountService, AccountService>();
+
+
 
 builder.Services.AddAuthentication(options =>
     {
