@@ -28,40 +28,46 @@
             <MudText Typo="Typo.h4" Color="Color.Primary" Style="margin:  20px auto 40px;">Login</MudText>
         </div>
         <MudCard Style="padding: 50px 40px 40px">
-        <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
-            <DataAnnotationsValidator />
-            
-            <MudGrid>
-                <MudItem md="12" xs="12" sm="12" lg="12" >
-                    <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email" 
-                                        Label="Email" Placeholder="name@example.com"
-                                        FullWidth="true"
-                                        Class="mb-4"
-                                        Variant="Variant.Outlined"
-                                        UserAttributes="@(new() { { "autocomplete", "username" }, { "aria-required", "true" } } )" />
-                </MudItem>
-                <MudItem  md="12" xs="12" sm="12" lg="12">
-                    <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password" 
-                                        Label="Password" InputType="InputType.Password" Placeholder="password"
-                                        FullWidth="true"
-                                        Class="mb-4"
-                                        Variant="Variant.Outlined"
-                                        Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Outlined.Visibility"  AdornmentToggledIcon="@Icons.Material.Outlined.VisibilityOff"
-                                        AdornmentClickFunction="showPassword"
-                                        UserAttributes="@(new() { { "autocomplete", "current-password" }, { "aria-required", "true" } } )" />
-                </MudItem>
-                <MudItem md="12">
-                    <MudStaticCheckBox For="@(() => Input.RememberMe)" Color="Color.Primary" Style="margin-bottom: 20px" @bind-Value="Input.RememberMe">Remember me</MudStaticCheckBox>
-                </MudItem>
-                <MudItem md="12" xs="12" sm="12" lg="12">
-                    <MudStaticButton
-                        Variant="Variant.Filled"
-                        Color="Color.Primary"
-                        Style="height: 50px"
-                        FullWidth="true" FormAction="FormAction.Submit">Log in</MudStaticButton>
-                </MudItem>
-            </MudGrid>
-        </EditForm>
+            @if (!string.IsNullOrEmpty(errorMessage))
+            {
+                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+                    @errorMessage
+                </MudAlert>
+            }
+            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+                <DataAnnotationsValidator/>
+
+                <MudGrid>
+                    <MudItem md="12" xs="12" sm="12" lg="12">
+                        <MudStaticTextField For="@(() => Input.Email)" @bind-Value="Input.Email"
+                                            Label="Email" Placeholder="name@example.com"
+                                            FullWidth="true"
+                                            Class="mb-4"
+                                            Variant="Variant.Outlined"
+                                            UserAttributes="@(new() { { "autocomplete", "username" }, { "aria-required", "true" } })"/>
+                    </MudItem>
+                    <MudItem md="12" xs="12" sm="12" lg="12">
+                        <MudStaticTextField For="@(() => Input.Password)" @bind-Value="Input.Password"
+                                            Label="Password" InputType="InputType.Password" Placeholder="password"
+                                            FullWidth="true"
+                                            Class="mb-4"
+                                            Variant="Variant.Outlined"
+                                            Adornment="Adornment.End" AdornmentIcon="@Icons.Material.Outlined.Visibility" AdornmentToggledIcon="@Icons.Material.Outlined.VisibilityOff"
+                                            AdornmentClickFunction="showPassword"
+                                            UserAttributes="@(new() { { "autocomplete", "current-password" }, { "aria-required", "true" } })"/>
+                    </MudItem>
+                    <MudItem md="12">
+                        <MudStaticCheckBox For="@(() => Input.RememberMe)" Color="Color.Primary" Style="margin-bottom: 20px" @bind-Value="Input.RememberMe">Remember me</MudStaticCheckBox>
+                    </MudItem>
+                    <MudItem md="12" xs="12" sm="12" lg="12">
+                        <MudStaticButton
+                            Variant="Variant.Filled"
+                            Color="Color.Primary"
+                            Style="height: 50px"
+                            FullWidth="true" FormAction="FormAction.Submit">Log in</MudStaticButton>
+                    </MudItem>
+                </MudGrid>
+            </EditForm>
 
         </MudCard>
     </MudItem>

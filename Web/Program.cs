@@ -15,10 +15,19 @@ using Web.Services.Abstractions;
 
 var builder = WebApplication.CreateBuilder(args);
 
-// MudBlazor + Razor Components
+
 builder.Services.AddMudServices();
 builder.Services.AddRazorComponents()
     .AddInteractiveServerComponents();
+
+builder.Services.AddCascadingAuthenticationState();
+
+builder.Services.AddAuthentication(options =>
+    {
+        options.DefaultScheme = IdentityConstants.ApplicationScheme;
+        options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
+    })
+    .AddIdentityCookies();
 
 builder.Services.AddMudServices(config =>
 {
@@ -31,8 +40,6 @@ builder.Services.AddMudServices(config =>
     config.SnackbarConfiguration.ShowTransitionDuration = 500;
     config.SnackbarConfiguration.SnackbarVariant = Variant.Filled;
 });
-
-builder.Services.AddCascadingAuthenticationState();
 
 builder.Configuration
     .SetBasePath(Directory.GetCurrentDirectory())
@@ -55,40 +62,26 @@ builder.Services.AddCors(options =>
         .AllowCredentials());
 });
 
+
 builder.Services.ConfigureApplicationCookie(options =>
 {
     options.LoginPath = "/Account/Login";
     options.Events.OnRedirectToLogin = context =>
     {
-        if (context.Request.Path.StartsWithSegments("/api"))
+        if(context.Request.Path.StartsWithSegments("/api"))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
         }
-
         context.Response.Redirect(context.RedirectUri);
-        return Task.CompletedTask;
-    };
-    options.Events.OnRedirectToAccessDenied = context =>
-    {
-        if (context.Request.Path.StartsWithSegments("/api"))
-        {
-            context.Response.StatusCode = StatusCodes.Status403Forbidden;
-        }
-        else
-        {
-            context.Response.Redirect(context.RedirectUri);
-        }
         return Task.CompletedTask;
     };
 });
 
-
-
 // services
 builder.Services.AddScoped<IAccountService, AccountService>();
 
-// Controllers + auth global
+
 builder.Services.AddControllers(options =>
 {
     var policy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
@@ -105,7 +98,6 @@ builder.Services.AddControllers(options =>
 builder.Services.AddDataProtection()
     .PersistKeysToFileSystem(new DirectoryInfo("/app/keys"));
 
-builder.Services.AddEndpointsApiExplorer();
 builder.Services.AddSwaggerGen(c =>
 {
     var xmlFile = $"{System.Reflection.Assembly.GetExecutingAssembly().GetName().Name}.xml";
@@ -114,17 +106,34 @@ builder.Services.AddSwaggerGen(c =>
 
     c.SwaggerDoc("v1", new()
     {
-        Title = "SNCore Documentação Api",
+        Title = "meu APP Documentação Api",
         Description = ""
     });
+    
+    
+    c.AddSecurityDefinition("Cookie", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+    {
+        Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
+        Name = "Cookie",
+        In = Microsoft.OpenApi.Models.ParameterLocation.Header,
+        Description = "Cookie de autenticação. Exemplo: .AspNetCore.Identity.Application=..."
+    });
+    
+    c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
+    {
+        {
+            new Microsoft.OpenApi.Models.OpenApiSecurityScheme
+            {
+                Reference = new Microsoft.OpenApi.Models.OpenApiReference
+                {
+                    Type = Microsoft.OpenApi.Models.ReferenceType.SecurityScheme,
+                    Id = "Cookie"
+                }
+            },
+            new string[] {}
+        }
+    });
 });
-
-builder.Services.AddAuthentication(options =>
-{
-    options.DefaultScheme = IdentityConstants.ApplicationScheme;
-    options.DefaultSignInScheme = IdentityConstants.ExternalScheme;
-})
-.AddIdentityCookies();
 
 builder.Services.AddDbContext<ApplicationDbContext>(options =>
     options.UseNpgsql(builder.Configuration.GetConnectionString("DefaultConnection")));
@@ -144,7 +153,6 @@ if (app.Environment.IsDevelopment())
 {
     app.UseCors("CorsDev");
     app.UseMigrationsEndPoint();
-    app.UseStaticFiles();
     app.UseSwagger();
     app.UseSwaggerUI(c =>
     {
@@ -167,27 +175,22 @@ else
 }
 
 app.UseHttpsRedirection();
+app.MapStaticAssets(); 
 
-// >>> FALTAVA NO SEU PIPELINE <<<
+
 app.UseAuthentication();
 app.UseAuthorization();
 
-// Se você quiser manter seu /404 de UI, pode deixar ligado
-app.UseStatusCodePagesWithRedirects("/404");
 
-// Seu middleware de exceção (ok ficar aqui também)
-app.UseMiddleware<ExceptionMiddleware>();
+app.MapControllers();
+
+
 
 app.UseAntiforgery();
 
-// Endpoints
-app.MapControllers();
+app.UseMiddleware<ExceptionMiddleware>();
 
-// >>> ISSO AQUI RESOLVE O 200+HTML NO /api QUANDO NÃO EXISTE ENDPOINT <<<
-app.MapFallback("/api/{*path}", () => Results.NotFound());
 
-// Static + Blazor por último (fallback final)
-app.MapStaticAssets();
 app.MapRazorComponents<App>()
    .AddInteractiveServerRenderMode();
 
