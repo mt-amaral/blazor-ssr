@@ -82,6 +82,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 builder.Services.AddScoped<IAccountService, AccountService>();
 
 
+
 builder.Services.AddControllers(options =>
 {
     var policy = new Microsoft.AspNetCore.Authorization.AuthorizationPolicyBuilder()
@@ -162,7 +163,7 @@ if (app.Environment.IsDevelopment())
 }
 else if (app.Environment.IsStaging())
 {
-    app.UseCors("CorsProd");
+  
 
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -170,21 +171,21 @@ else if (app.Environment.IsStaging())
 }
 else
 {
+    app.UseCors("CorsProd");
     app.UseExceptionHandler("/Error", createScopeForErrors: true);
     app.UseHsts();
+    app.UseStatusCodePagesWithReExecute("/404");
 }
 
 app.UseHttpsRedirection();
 app.MapStaticAssets(); 
 
 
-app.UseAuthentication();
+app.UseAuthentication();    
 app.UseAuthorization();
 
 
 app.MapControllers();
-
-
 
 app.UseAntiforgery();
 

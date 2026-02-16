@@ -1,8 +1,16 @@
 ﻿@using MudBlazor
 @inherits LayoutComponentBase
-<MudThemeProvider />
+<MudThemeProvider Theme="Configuration.Theme" IsDarkMode="Configuration.IsDarkMode"/>
 <MudPopoverProvider/>
-<MudDialogProvider/>
+<MudDialogProvider
+    FullWidth="true"
+    MaxWidth="MaxWidth.ExtraExtraLarge"
+    CloseButton="true"
+    BackdropClick="false"
+    NoHeader="true"
+    Position="DialogPosition.Center"
+    CloseOnEscapeKey="true"
+    BackgroundClass="my-custom-class"/>
 <MudSnackbarProvider/>
 
 <MudLayout>
