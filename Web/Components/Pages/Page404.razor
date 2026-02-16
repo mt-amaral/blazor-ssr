@@ -1,0 +1,31 @@
+﻿@layout LoginLayout
+@using Web.Layout
+
+@page "/404"
+
+<PageTitle>Página não encontrada</PageTitle>
+
+<MudContainer Class="d-flex flex-column align-center justify-center" Style="height:70vh;">
+    <MudText Typo="Typo.h1">404</MudText>
+
+    <MudText Typo="Typo.h5" Class="mb-4">
+        Página não encontrada
+    </MudText>
+
+    <MudButton Variant="Variant.Filled"
+               Color="Color.Primary"
+               StartIcon="@Icons.Material.Filled.Home"
+               Href="/">
+        Voltar para Home
+    </MudButton>
+</MudContainer>
+
+
+@code
+{
+    
+    protected override Task OnInitializedAsync()
+    {
+        return Task.CompletedTask;
+    }
+}

@@ -48,8 +48,8 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
         if (result.Succeeded)
         {
             var dto = new LoginOutDto(
-                Id: 0,                       // ajuste se tiver user.Id
-                FullName: "",                // ajuste se tiver nome
+                Id: 0,
+                FullName: "",  
                 Email: user.Email ?? request.Email
             );
 
