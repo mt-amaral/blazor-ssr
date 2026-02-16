@@ -4,6 +4,10 @@ namespace Web;
 
 public static class Configuration
 {
+    public static string LocalhostCors = "https://localhost:8091";
+    public static string ProdHostCors = "https://url.com.br";
+    
+    
     public static bool IsDarkMode { get; set; } = false;
     public static MudTheme Theme = new()
     {
@@ -15,7 +19,7 @@ public static class Configuration
                 FontWeight = "300"
             }
         },
-PaletteLight = new()
+PaletteLight = new PaletteLight()
 {
     Primary = "#1565C0",          // Azul mais profundo e moderno
     Secondary = "#E91E63",        // Rosa vibrante com melhor contraste
@@ -37,7 +41,7 @@ PaletteLight = new()
     ActionDisabledBackground = "#EEEEEE", // Fundo mais claro*/
 },
 
-PaletteDark = new()
+PaletteDark = new PaletteDark()
 {
     Primary = "#42A5F5",          // Azul mais claro para destaque
     Secondary = "#F06292",        // Rosa pastel para melhor legibilidade

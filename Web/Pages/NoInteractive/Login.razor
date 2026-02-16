@@ -9,7 +9,6 @@
 @using Web.Dto.Account
 @using Web.Entity.Identity
 @using Web.Layout
-@using Web.Security
 @using Web.Services.Abstractions
 
 @inject IAccountService AccountService
@@ -19,7 +18,6 @@
 @inject SignInManager<User> SignInManager
 @inject ILogger<Login> Logger
 @inject NavigationManager NavigationManager
-@inject IdentityRedirectManager RedirectManager
 
 <PageTitle>Log in</PageTitle>
 
@@ -104,23 +102,8 @@
 
         var dto = response?.Data;
 
-        if (dto?.RequiresTwoFactor == true)
-        {
-            RedirectManager.RedirectTo(
-                "Account/LoginWith2fa",
-                new() { ["returnUrl"] = ReturnUrl, ["rememberMe"] = Input.RememberMe });
-            return;
-        }
-
-        if (dto?.IsLockedOut == true)
-        {
-            Logger.LogWarning("User account locked out.");
-            RedirectManager.RedirectTo("Account/Lockout");
-            return;
-        }
-
         Logger.LogInformation("User logged in.");
-        RedirectManager.RedirectTo(ReturnUrl);
+        NavigationManager.NavigateTo(ReturnUrl ?? "");
     }
 
 }

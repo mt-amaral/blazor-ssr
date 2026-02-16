@@ -4,6 +4,8 @@
     <TargetFramework>net9.0</TargetFramework>
     <Nullable>enable</Nullable>
     <ImplicitUsings>enable</ImplicitUsings>
+      <GenerateDocumentationFile>true</GenerateDocumentationFile>
+      <NoWarn>$(NoWarn)</NoWarn>
     <UserSecretsId>aspnet-Web-ffe0c3ca-976d-495a-b5e9-eb12e568bffd</UserSecretsId>
     <DockerDefaultTargetOS>Linux</DockerDefaultTargetOS>
     <DockerComposeProjectPath>..\docker-compose.dcproj</DockerComposeProjectPath>
@@ -13,16 +15,19 @@
   <ItemGroup>
     <PackageReference Include="Microsoft.AspNetCore.Diagnostics.EntityFrameworkCore" Version="9.*" />
     <PackageReference Include="Microsoft.AspNetCore.Identity.EntityFrameworkCore" Version="9.*" />
+    <PackageReference Include="Microsoft.AspNetCore.Mvc.NewtonsoftJson" Version="9.0.13" />
     <PackageReference Include="Microsoft.EntityFrameworkCore.Tools" Version="9.*" />
     <PackageReference Include="Microsoft.VisualStudio.Azure.Containers.Tools.Targets" Version="1.23.0" />
     <PackageReference Include="MudBlazor" Version="8.*" />
-    <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.*" />
+    <PackageReference Include="Extensions.MudBlazor.StaticInput" Version="3.2.0" />
     <PackageReference Include="Npgsql.EntityFrameworkCore.PostgreSQL" Version="9.0.4" />
+    <PackageReference Include="Swashbuckle.AspNetCore" Version="9.0.6" />
   </ItemGroup>
 
 
   <ItemGroup>
     <Folder Include="Migrations\" />
+    <Folder Include="Security\" />
   </ItemGroup>
 
 
@@ -54,7 +59,6 @@
     <AdditionalFiles Include="Pages\Auth.razor" />
     <AdditionalFiles Include="Pages\NoInteractive\Login.razor" />
     <AdditionalFiles Include="Pages\NoInteractive\_Imports.razor" />
-    <AdditionalFiles Include="Pages\Page404.razor" />
   </ItemGroup>
 
 </Project>
