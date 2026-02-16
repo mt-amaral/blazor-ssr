@@ -1,5 +1,4 @@
 using Microsoft.AspNetCore.Identity;
-using Web.Components.Account;
 using Web.Entity.Identity;
 
 namespace Web.Security
