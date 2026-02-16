@@ -1,0 +1,48 @@
+﻿/* fica escondido por padrão */
+#components-reconnect-modal {
+    position: fixed;
+    inset: 0;
+    display: none;
+    z-index: 99999;
+}
+
+/* Blazor alterna essa classe quando cair a conexão */
+#components-reconnect-modal.components-reconnect-show {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: rgba(0,0,0,.45);
+}
+
+#components-reconnect-modal .reconnect-card {
+    background: white;
+    border-radius: 14px;
+    padding: 22px 26px;
+    min-width: 320px;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+    text-align: center;
+}
+
+#components-reconnect-modal .reconnect-title {
+    font-size: 18px;
+    font-weight: 600;
+    margin-top: 10px;
+}
+
+#components-reconnect-modal .reconnect-subtitle {
+    font-size: 14px;
+    opacity: .8;
+    margin-top: 6px;
+}
+
+#components-reconnect-modal .reconnect-spinner {
+    width: 38px;
+    height: 38px;
+    border: 4px solid #ddd;
+    border-top-color: #1e88e5;
+    border-radius: 50%;
+    margin: 0 auto;
+    animation: spin 0.9s linear infinite;
+}
+
+@keyframes spin { to { transform: rotate(360deg); } }

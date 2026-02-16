@@ -1,25 +1,78 @@
-﻿@using MudBlazor
-@using MudBlazor.StaticInput
+﻿@using Microsoft.AspNetCore.Components.Authorization
+@using MudBlazor
 @inherits LayoutComponentBase
+@inject  NavigationManager NavigationManager
+@inject AuthenticationStateProvider AuthenticationStateProvider
 
-<MudThemeProvider />
-<MudPopoverProvider />
-<MudDialogProvider />
-<MudSnackbarProvider />
-<MudLayout>
-    <MudAppBar Elevation="1">
-        <MudStaticNavDrawerToggle DrawerId="nav-drawer" Icon="@Icons.Material.Filled.Menu" Color="Color.Inherit" Edge="Edge.Start" />
-        <MudText Typo="Typo.h5" Class="ml-3">Application</MudText>
-        <MudSpacer />
-        <MudIconButton Icon="@Icons.Material.Filled.MoreVert" Color="Color.Inherit" Edge="Edge.End" />
-    </MudAppBar>
-    <MudDrawer id="nav-drawer" @bind-Open="_drawerOpen" ClipMode="DrawerClipMode.Always" Elevation="2">
-        <NavMenu />
-    </MudDrawer>
-    <MudMainContent Class="pt-16 pa-4">
-        @Body
-    </MudMainContent>
-</MudLayout>
+
+
+<MudThemeProvider Theme="Configuration.Theme" IsDarkMode="Configuration.IsDarkMode"/>
+<MudPopoverProvider/>
+<MudSnackbarProvider/>
+<MudDialogProvider
+    FullWidth="true"
+    MaxWidth="MaxWidth.ExtraExtraLarge"
+    CloseButton="true"
+    BackdropClick="false"
+    NoHeader="true"
+    Position="DialogPosition.Center"
+    CloseOnEscapeKey="true"
+    BackgroundClass="my-custom-class"/>
+
+
+@if (_isLoainng)
+{
+    <MudLayout>
+        <div style="display:flex; justify-content:center; align-items:center; height:100vh;">
+            <MudProgressCircular Color="Color.Primary" Indeterminate="true" />
+        </div>
+    </MudLayout>
+}
+else
+{
+    <MudLayout>
+        <MudAppBar Elevation="1">
+            <MudIconButton Icon="@Icons.Material.Rounded.Menu" Style="color: #E0E0E0" Edge="Edge.Start" OnClick="@((e) => DrawerToggle())"/>
+            <MudSpacer/>
+            @*<MudIconButton Icon="@(Configuration.IsDarkMode ? Icons.Material.Rounded.LightMode : Icons.Material.Rounded.DarkMode)"
+                           Color="Color.Inherit"
+                           Edge="Edge.End"
+                           OnClick="@ThemeToggle"/>*@
+
+            <AuthorizeView>
+                <Authorized>
+                    <MudMenu >
+                        <ActivatorContent>
+                            <MudChip T="string" Icon="@Icons.Material.Filled.Person" 
+                                     IconColor="Color.Default" Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Tertiary"
+                                     Text="@context.User.Identity.Name">
+                            </MudChip>
+                        </ActivatorContent>
+                        <ChildContent>
+                            <MudMenuItem Icon="@Icons.Material.Filled.Logout" Label="Logout" OnClick="() => ToLogout()"/>
+                        </ChildContent>
+                    </MudMenu>
+                </Authorized>
+            </AuthorizeView>
+
+
+        </MudAppBar>
+        <MudDrawer @bind-Open="_drawerOpen" Elevation="2">
+            <MudDrawerHeader Style="display: block">
+                <MudText Typo="Typo.h5" Class="mt-1 d-block">Meu App</MudText>
+                <p>App Desciption</p>
+                <MudDivider DividerType="DividerType.FullWidth" Class="my-2"/>
+            </MudDrawerHeader>
+            <NavMenu/>
+        </MudDrawer>
+        <MudMainContent >
+            <MudContainer MaxWidth="MaxWidth.ExtraLarge">
+                @Body
+            </MudContainer>
+        </MudMainContent>
+    </MudLayout>
+}
+
 
 
 <div id="blazor-error-ui" data-nosnippet>
@@ -29,7 +82,25 @@
 </div>
 
 @code {
-    private bool _drawerOpen = true;
-}
+    bool _drawerOpen = true;
+    bool _isLoainng = true;
+    void DrawerToggle() => _drawerOpen = !_drawerOpen;
+    void ThemeToggle() => Configuration.IsDarkMode = !Configuration.IsDarkMode;
+    
+    
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            _isLoainng = false;
+            StateHasChanged();
+        }
+    }
 
+    void ToLogout()
+    {
+        NavigationManager.NavigateTo("Logout", forceLoad: true);
+    }
+
+}
 
