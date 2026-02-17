@@ -1,0 +1,23 @@
+﻿@page "/Logout"
+@using Web.Layout
+@using Web.Services.Abstractions
+
+
+@layout LoginLayout
+@inject IAccountService AccountService
+@inject NavigationManager NavigationManager
+
+@code {
+    [CascadingParameter]
+    private HttpContext HttpContext { get; set; } = default!;
+    
+    [SupplyParameterFromQuery]
+    private string? ReturnUrl { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        await AccountService.Logout();
+        NavigationManager.NavigateTo($"Account/Login?returnUrl", forceLoad: true);
+    }
+    
+}

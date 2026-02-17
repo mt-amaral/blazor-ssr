@@ -45,7 +45,7 @@ else
                         <ActivatorContent>
                             <MudChip T="string" Icon="@Icons.Material.Filled.Person" 
                                      IconColor="Color.Default" Variant="Variant.Outlined" Size="Size.Medium" Color="Color.Tertiary"
-                                     Text="@context.User.Identity.Name">
+                                     Text="@context.User.Identity!.Name">
                             </MudChip>
                         </ActivatorContent>
                         <ChildContent>
@@ -88,13 +88,15 @@ else
     void ThemeToggle() => Configuration.IsDarkMode = !Configuration.IsDarkMode;
     
     
-    protected override async Task OnAfterRenderAsync(bool firstRender)
+    protected override Task OnAfterRenderAsync(bool firstRender)
     {
         if (firstRender)
         {
             _isLoainng = false;
             StateHasChanged();
         }
+
+        return Task.CompletedTask;
     }
 
     void ToLogout()
