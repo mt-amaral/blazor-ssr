@@ -10,4 +10,5 @@ public interface IAccountService
     Task<(Response<LoginOutDto?>, short)> LoginAsync(LoginInDto request);
     
     Task Logout();
+    Task<(ResponsePage<UserOutDto?>, short)> ListUsersPaginatedAsync(UserFilterInDto filterInDto, CancellationToken ct);
 }

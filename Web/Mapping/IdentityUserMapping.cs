@@ -1,8 +1,9 @@
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
+using Web.Entity.Identity;
 
-namespace Web.Entity.Identity;
+namespace Web.Mapping;
 
 public class IdentityUserMapping : IEntityTypeConfiguration<User>
 {

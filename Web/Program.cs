@@ -98,7 +98,8 @@ builder.Services.AddControllers(options =>
 });
 
 builder.Services.AddDataProtection()
-    .PersistKeysToFileSystem(new DirectoryInfo("/app/keys"));
+    .SetApplicationName("app web")
+    .PersistKeysToFileSystem(new DirectoryInfo(Path.GetTempPath()));
 
 builder.Services.AddSwaggerGen(c =>
 {
@@ -164,6 +165,14 @@ if (app.Environment.IsDevelopment())
 }
 else if (app.Environment.IsStaging())
 {
+    app.UseCors("CorsDev");
+    app.UseMigrationsEndPoint();
+    app.UseSwagger();
+    app.UseSwaggerUI(c =>
+    {
+        c.SwaggerEndpoint("/swagger/v1/swagger.json", "Admin API V1");
+        c.InjectStylesheet("/swagger-ui/SwaggerDark.css");
+    });
   
 
     using var scope = app.Services.CreateScope();

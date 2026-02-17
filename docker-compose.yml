@@ -25,7 +25,7 @@ services:
     depends_on:
       - postgres
     environment:
-      - ASPNETCORE_ENVIRONMENT=Staging
+      - ASPNETCORE_ENVIRONMENT=Development
       - ConnectionStrings__DefaultConnection=Host=postgres;Port=5432;Database=appdb;Username=postgres;Password=postgres
     ports:
       - "8080:8080"

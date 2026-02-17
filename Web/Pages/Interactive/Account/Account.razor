@@ -1,0 +1,165 @@
+﻿@page "/Account/User"
+@using Web.Components.Response
+@using Web.Dto
+@using Web.Dto.Account
+@using Web.Services.Abstractions
+
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+
+@rendermode InteractiveServer
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+
+        <!-- Linha dos inputs -->
+        <MudItem xs="12" md="4">
+            <MudAutocomplete T="string"
+                             ShrinkLabel="true"
+                             Label="Name"
+                             Margin="Margin.Dense"
+                             Variant="Variant.Outlined"
+                             ValueChanged="OnSearchChanged"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             SelectValueOnTab="true"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             AdornmentColor="Color.Primary" />
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudAutocomplete T="string"
+                             ShrinkLabel="true"
+                             Label="Email"
+                             Margin="Margin.Dense"
+                             Variant="Variant.Outlined"
+                             ValueChanged="OnSearchChanged"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             SelectValueOnTab="true"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             AdornmentColor="Color.Primary" />
+        </MudItem>
+
+        <!-- quebra de linha -->
+        <MudItem xs="12"></MudItem>
+
+        <!-- Linha dos botões -->
+        <MudItem xs="12" Style="display:flex; justify-content:end; gap:10px;">
+            <MudButton Variant="Variant.Filled" Color="Color.Primary">
+                Create
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled" Color="Color.Error">
+                Delete
+            </MudButton>
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+
+
+<MudTable @ref="_table"
+          T="UserOutDto"
+          Hover="true"
+          Dense="true"
+          MultiSelection="true"
+          SelectionChangeable="_selectionChangeable"
+          SelectOnRowClick="@_selectOnRowClick"
+          @bind-SelectedItems="_selectedUsers"
+          ServerData="LoadUsersServer"
+          Loading="_isLoading">
+
+    <ToolBarContent>
+        <MudSpacer />
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Nome</MudTh>
+        <MudTh>Email</MudTh>
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="Nome">@context.FullName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+    </RowTemplate>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+
+</MudTable>
+
+@code {
+    private MudTable<UserOutDto>? _table;
+
+    private ResponsePage<UserOutDto?>? _pagedUsers;
+    private UserFilterInDto _filterInDto = new();
+
+    private bool _isLoading;
+
+    private bool _selectOnRowClick = true;
+    private bool _selectionChangeable = true;
+
+    private HashSet<UserOutDto> _selectedUsers = new();
+
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        _pagedUsers ??= new ResponsePage<UserOutDto?>();
+    }
+
+    private async Task<TableData<UserOutDto>> LoadUsersServer(TableState state, CancellationToken ct)
+    {
+        _isLoading = true;
+
+        try
+        {
+
+            var page = state.Page + 1;
+            var pageSize = state.PageSize;
+
+            _filterInDto.Page = page;
+            _filterInDto.PageSize = pageSize;
+            
+
+            _pagedUsers = await AccountService
+                .ListUsersPaginatedAsync(_filterInDto, ct)
+                .HandlePageAsync(Snackbar);
+
+            _pagedUsers ??= new ResponsePage<UserOutDto?>();
+
+            var items = (_pagedUsers.Items ?? Enumerable.Empty<UserOutDto?>())
+                .Where(x => x is not null)
+                .Select(x => x!)
+                .ToList();
+
+            return new TableData<UserOutDto>
+            {
+                Items = items,
+                TotalItems = _pagedUsers.TotalCount
+            };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnSearchChanged(string _)
+    {
+        // volta pra primeira página e recarrega
+        if (_table is not null)
+        {
+             _table.NavigateTo(0);
+            await _table.ReloadServerData();
+        }
+    }
+}

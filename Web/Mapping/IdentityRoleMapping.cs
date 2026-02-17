@@ -2,7 +2,7 @@ using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.EntityFrameworkCore.Metadata.Builders;
 
-namespace Web.Entity.Identity;
+namespace Web.Mapping;
 
 public class IdentityRoleMapping
     : IEntityTypeConfiguration<IdentityRole<long>>

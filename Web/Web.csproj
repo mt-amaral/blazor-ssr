@@ -26,7 +26,6 @@
 
 
   <ItemGroup>
-    <Folder Include="Components\" />
     <Folder Include="Migrations\" />
   </ItemGroup>
 
@@ -50,6 +49,10 @@
     <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\SetPassword.razor" />
     <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\TwoFactorAuthentication.razor" />
     <_ContentIncludedByDefault Remove="Components\Account\Pages\Manage\_Imports.razor" />
+    <_ContentIncludedByDefault Remove="Pages\Interactive\Components\SimpleTabs.razor" />
+    <_ContentIncludedByDefault Remove="Pages\Interactive\Components\TabItem.razor" />
+    <_ContentIncludedByDefault Remove="Components\SimpleTabs\SimpleTabs.razor" />
+    <_ContentIncludedByDefault Remove="Components\SimpleTabs\TabItem.razor" />
   </ItemGroup>
 
 

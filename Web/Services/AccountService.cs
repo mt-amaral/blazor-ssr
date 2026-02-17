@@ -1,4 +1,5 @@
 ﻿using Microsoft.AspNetCore.Identity;
+using Microsoft.EntityFrameworkCore;
 using Web.Context;
 using Web.Dto;
 using Web.Dto.Account;
@@ -84,5 +85,45 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
     }
     
     public Task Logout() => signInMannger.SignOutAsync();
+    
+    
+    
+    public async Task<(ResponsePage<UserOutDto?>, short)> ListUsersPaginatedAsync(UserFilterInDto filterInDto, CancellationToken ct)
+    {
+        try
+        {
+            var query = context.Users.AsQueryable().AsNoTracking();
+            
+            if (!string.IsNullOrWhiteSpace(filterInDto.Name))
+                query = query.Where(u => u.UserName.Contains(filterInDto.Name));
+
+            var totalCount = await query.CountAsync();
+
+            var items = await query
+                .Skip((filterInDto.Page - 1) * filterInDto.PageSize)
+                .Take(filterInDto.PageSize)
+                .ToListAsync(ct);
+
+            var usersDto = items.Select(u => new UserOutDto(u.Id, u.UserName!, u.Email!)).ToList();
+
+            var responsePage = new ResponsePage<UserOutDto?>(
+                items: usersDto,
+                totalCount: totalCount,
+                currentPage: filterInDto.Page,
+                pageSize: filterInDto.PageSize,
+                message: null
+            );
+
+            return (responsePage, 200);
+        }
+        catch (Exception ex)
+        {
+            var errorResponse = new ResponsePage<UserOutDto?>(
+                message: "Erro ao carregar usuários",
+                errors: new List<string> { ex.Message }
+            );
+            return (errorResponse, 500);
+        }
+    }
     
 }

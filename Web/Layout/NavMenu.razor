@@ -1,11 +1,11 @@
 ﻿@using Microsoft.AspNetCore.Components.Routing
 @using MudBlazor
-@implements IDisposable
 
 @inject NavigationManager NavigationManager
 
 <MudNavMenu>
-    <MudNavLink Href="" Match="NavLinkMatch.Prefix" Icon="@Icons.Material.Filled.Lock">Auth</MudNavLink>
+    <MudNavLink Href=""  Icon="@Icons.Material.Filled.Lock">Auth</MudNavLink>
+    <MudNavLink Href="Account/User" Icon="@Icons.Material.Filled.Lock">Account</MudNavLink>
 </MudNavMenu>
 
 
@@ -22,11 +22,6 @@
     {
         currentUrl = NavigationManager.ToBaseRelativePath(e.Location);
         StateHasChanged();
-    }
-
-    public void Dispose()
-    {
-        NavigationManager.LocationChanged -= OnLocationChanged;
     }
 }
 
