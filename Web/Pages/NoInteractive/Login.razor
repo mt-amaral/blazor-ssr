@@ -2,10 +2,7 @@
 
 
 @using Microsoft.AspNetCore.Authentication
-@using Microsoft.AspNetCore.Components.Forms
-@using Microsoft.AspNetCore.Components.Web
 @using Microsoft.AspNetCore.Identity
-@using MudBlazor.StaticInput
 @using Web.Dto.Account
 @using Web.Entity.Identity
 @using Web.Layout
@@ -30,11 +27,13 @@
         <MudCard Style="padding: 50px 40px 40px">
             @if (!string.IsNullOrEmpty(errorMessage))
             {
-                <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
-                    @errorMessage
-                </MudAlert>
+                <div id="error-message-container" class="error-container">
+                    <MudAlert Severity="Severity.Error" Variant="Variant.Filled" Class="mb-4">
+                        @errorMessage
+                    </MudAlert>
+                </div>    
             }
-            <EditForm Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
+            <EditForm id="login-form" Model="Input" method="post" OnValidSubmit="LoginUser" FormName="login">
                 <DataAnnotationsValidator/>
 
                 <MudGrid>
@@ -64,7 +63,13 @@
                             Variant="Variant.Filled"
                             Color="Color.Primary"
                             Style="height: 50px"
-                            FullWidth="true" FormAction="FormAction.Submit">Log in</MudStaticButton>
+                            FullWidth="true" 
+                            FormAction="FormAction.Submit">
+                            Login
+                        </MudStaticButton>
+                    </MudItem>
+                    <MudItem md="12" xs="12" sm="12" lg="12">
+                        <MudStaticButton  Style="height: 50px" FullWidth="true" StartIcon="@Icons.Custom.Brands.Google" IconColor="Color.Primary" Variant="Variant.Filled" DropShadow="true" Disabled="false"> Google </MudStaticButton>
                     </MudItem>
                 </MudGrid>
             </EditForm>

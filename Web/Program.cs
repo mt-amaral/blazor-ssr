@@ -6,10 +6,10 @@ using MudBlazor;
 using MudBlazor.Services;
 using Newtonsoft.Json;
 using Web;
-using Web.Components;
 using Web.Context;
 using Web.Entity.Identity;
 using Web.Middleware;
+using Web.Pages;
 using Web.Services;
 using Web.Services.Abstractions;
 
