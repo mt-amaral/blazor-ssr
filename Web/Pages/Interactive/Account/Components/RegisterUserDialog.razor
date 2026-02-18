@@ -1,0 +1,109 @@
+﻿@using MudBlazor
+@using Web.Dto
+@using Web.Dto.Account
+@using Web.Services.Abstractions
+
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+
+
+<MudDialog>
+        
+    <TitleContent>
+        Criar usuário
+    </TitleContent>
+    <DialogContent>
+    <MudForm @ref="_form">
+        <MudTextField @bind-Value="_model.Email"
+                      Label="Email"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      For="@(() => _model.Email)"
+                      Required="true"/>
+
+        <MudTextField @bind-Value="_model.Password"
+                      Label="Password"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      For="@(() => _model.Password)"
+                      Required="true"
+                      InputType="InputType.Password"/>
+
+        <MudTextField @bind-Value="_model.ConfirmPassword"
+                      Label="Confirm password"
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      For="@(() => _model.ConfirmPassword)"
+                      Required="true"
+                      InputType="InputType.Password"/>
+    </MudForm>
+    </DialogContent>
+ 
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel"
+                   Disabled="_saving">
+            Cancelar
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="SubmitAsync"
+                   Disabled="_saving">
+            Criar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    
+    private MudForm? _form;
+    private bool _saving;
+    private RegisterInDto _model = new();
+
+    private void Cancel() => MudDialog.Cancel();
+    
+
+    private async Task SubmitAsync()
+    {
+        if (_form is null) return;
+
+        await _form.Validate();
+        if (!_form.IsValid) return;
+
+        _saving = true;
+        try
+        {
+            var (response, status) = await AccountService.RegisterAsync(_model);
+
+            var ok = status is >= 200 and < 300;
+            if (ok)
+            {
+                Snackbar.Add(response?.Message ?? "Usuário criado com sucesso.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            if (response?.Errors?.Any() == true)
+            {
+                foreach (var err in response.Errors)
+                    Snackbar.Add(err, Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(response?.Message ?? "Falha ao criar usuário.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

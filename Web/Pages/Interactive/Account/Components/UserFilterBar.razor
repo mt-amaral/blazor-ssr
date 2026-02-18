@@ -1,0 +1,70 @@
+﻿@using MudBlazor
+
+<MudPaper Class="pa-4 mb-4" Elevation="1">
+    <MudGrid Spacing="2">
+
+        <MudItem xs="12" md="4">
+            <MudAutocomplete T="string"
+                             ShrinkLabel="true"
+                             Label="Name"
+                             Margin="Margin.Dense"
+                             Variant="Variant.Outlined"
+                             Value="@Name"
+                             ValueChanged="@NameChanged"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             SelectValueOnTab="true"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             AdornmentColor="Color.Primary" />
+        </MudItem>
+
+        <MudItem xs="12" md="4">
+            <MudAutocomplete T="string"
+                             ShrinkLabel="true"
+                             Label="Email"
+                             Margin="Margin.Dense"
+                             Variant="Variant.Outlined"
+                             Value="@Email"
+                             ValueChanged="@EmailChanged"
+                             ResetValueOnEmptyText="true"
+                             CoerceText="true"
+                             CoerceValue="true"
+                             SelectValueOnTab="true"
+                             AdornmentIcon="@Icons.Material.Filled.Search"
+                             AdornmentColor="Color.Primary" />
+        </MudItem>
+
+        <MudItem xs="12"></MudItem>
+
+        <MudItem xs="12" Style="display:flex; justify-content:end; gap:10px;">
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.ClearAll"
+                       Color="Color.Transparent"
+                       OnClick="@OnClear">
+                Clear
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       Color="Color.Primary"
+                       OnClick="@OnCreate">
+                Create
+            </MudButton>
+            
+        </MudItem>
+
+    </MudGrid>
+</MudPaper>
+
+@code {
+    [Parameter] public string? Name { get; set; }
+    [Parameter] public EventCallback<string?> NameChanged { get; set; }
+
+    [Parameter] public string? Email { get; set; }
+    [Parameter] public EventCallback<string?> EmailChanged { get; set; }
+    
+    [Parameter] public EventCallback OnClear { get; set; }
+    [Parameter] public EventCallback OnCreate { get; set; }
+    [Parameter] public EventCallback OnDelete { get; set; }
+}

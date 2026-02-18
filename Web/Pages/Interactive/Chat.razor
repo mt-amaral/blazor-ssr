@@ -1,0 +1,196 @@
+﻿@page "/Chat"
+@using MudBlazor
+
+<MudPaper Class="pa-4" Elevation="1" Style="height: calc(100vh - 120px); display:flex; gap:16px;">
+
+    <!-- Sidebar (lista de conversas) -->
+    <MudPaper Elevation="0" Class="pa-3" Style="width: 320px; border-right: 1px solid var(--mud-palette-lines-default);">
+        <MudText Typo="Typo.h6">Chats</MudText>
+
+        <MudTextField @bind-Value="_search"
+                      Placeholder="Search..."
+                      Variant="Variant.Outlined"
+                      Margin="Margin.Dense"
+                      Adornment="Adornment.Start"
+                      AdornmentIcon="@Icons.Material.Filled.Search"
+                      Class="mt-2 mb-3" />s
+
+        <MudList T="ChatItem" Dense="true">
+            @foreach (var c in FilteredChats)
+            {
+                <MudListItem T="ChatItem"
+                             OnClick="@(() => SelectChat(c.Id))"
+                             Style="@GetChatItemStyle(c.Id)">
+                    <MudListItemIcon>
+                        <MudAvatar Size="Size.Medium">@c.Avatar</MudAvatar>
+                    </MudListItemIcon>
+
+                    <MudListItemText>
+                        <div style="display:flex; justify-content:space-between; align-items:center;">
+                            <MudText Typo="Typo.subtitle2">@c.Title</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Secondary">@c.LastTime</MudText>
+                        </div>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary"
+                                 Style="white-space:nowrap; overflow:hidden; text-overflow:ellipsis;">
+                            @c.LastPreview
+                        </MudText>
+                    </MudListItemText>
+                </MudListItem>
+
+                <MudDivider />
+            }
+        </MudList>
+    </MudPaper>
+
+    <!-- Área do chat -->
+    <div style="flex:1; display:flex; flex-direction:column; min-width: 0;">
+        <!-- Header -->
+        <MudPaper Elevation="0" Class="pa-3" Style="border-bottom: 1px solid var(--mud-palette-lines-default);">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="display:flex; align-items:center; gap:10px;">
+                    <MudAvatar Size="Size.Medium">@SelectedChat?.Avatar</MudAvatar>
+                    <div>
+                        <MudText Typo="Typo.subtitle1">@SelectedChat?.Title</MudText>
+                        <MudText Typo="Typo.caption" Color="Color.Secondary">@SelectedChat?.Subtitle</MudText>
+                    </div>
+                </div>
+
+                <div style="display:flex; gap:6px;">
+                    <MudIconButton Icon="@Icons.Material.Filled.Search" />
+                    <MudIconButton Icon="@Icons.Material.Filled.MoreVert" />
+                </div>
+            </div>
+        </MudPaper>
+
+        <!-- Mensagens -->
+        <div style="flex:1; overflow:auto; padding:16px;">
+            @foreach (var m in SelectedMessages)
+            {
+                <div style="@GetMessageRowStyle(m.FromMe)">
+                    <MudPaper Elevation="0"
+                              Class="pa-3"
+                              Style="@GetBubbleStyle(m.FromMe)">
+                        <MudText Typo="Typo.body2" Style="white-space: pre-wrap;">@m.Text</MudText>
+
+                        <div style="display:flex; justify-content:flex-end; margin-top:6px; opacity:.85;">
+                            <MudText Typo="Typo.caption">@m.Time</MudText>
+                            @if (m.FromMe)
+                            {
+                                <MudIcon Icon="@Icons.Material.Filled.DoneAll" Size="Size.Small" Class="ml-2" />
+                            }
+                        </div>
+                    </MudPaper>
+                </div>
+            }
+        </div>
+
+        <!-- Composer -->
+        <MudPaper Elevation="0" Class="pa-3" Style="border-top: 1px solid var(--mud-palette-lines-default);">
+            <div style="display:flex; gap:10px; align-items:flex-end;">
+                <MudIconButton Icon="@Icons.Material.Filled.AttachFile" />
+                <MudTextField @bind-Value="_draft"
+                              Placeholder="Type a message..."
+                              Variant="Variant.Outlined"
+                              Margin="Margin.Dense"
+                              Lines="2"
+                              MaxLines="4"
+                              Style="flex:1; min-width: 0;" />
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.Send"
+                           OnClick="SendFakeMessage"
+                           Disabled="@string.IsNullOrWhiteSpace(_draft)">
+                    Send
+                </MudButton>
+            </div>
+        </MudPaper>
+    </div>
+
+</MudPaper>
+
+@code {
+    private string _search = "";
+    private string _draft = "";
+    private int _selectedChatId = 1;
+
+    private List<ChatItem> _chats = new()
+    {
+        new ChatItem(1, "Support / Billing", "Online • usually replies fast", "SB", "Can you check my invoice?", "10:42"),
+        new ChatItem(2, "Dev Team", "4 members • last seen 2m ago", "DT", "Deploy done ✅", "09:10"),
+        new ChatItem(3, "Product", "Roadmap planning", "PR", "New ideas for Q3", "Yesterday"),
+        new ChatItem(4, "Random", "Just for fun", "RN", "lol 😂", "Mon"),
+    };
+
+    private Dictionary<int, List<ChatMessage>> _messages = new()
+    {
+        [1] = new()
+        {
+            new(false, "Hi! I need help with my billing.", "10:38"),
+            new(true,  "Sure — what seems wrong on the invoice?", "10:39"),
+            new(false, "It looks like I was charged twice.", "10:40"),
+            new(true,  "Got it. I'll check the transaction details.", "10:41"),
+            new(false, "Can you check my invoice?", "10:42"),
+        },
+        [2] = new()
+        {
+            new(false, "Deploy status?", "09:05"),
+            new(true,  "Pushed to staging. Running tests now.", "09:06"),
+            new(true,  "Deploy done ✅", "09:10"),
+        },
+        [3] = new()
+        {
+            new(false, "We should review the Q3 priorities.", "Yesterday"),
+            new(true,  "Agree. Let's draft a roadmap.", "Yesterday"),
+        },
+        [4] = new()
+        {
+            new(false, "meme of the day?", "Mon"),
+            new(true,  "lol 😂", "Mon"),
+        },
+    };
+
+    private IEnumerable<ChatItem> FilteredChats =>
+        string.IsNullOrWhiteSpace(_search)
+            ? _chats
+            : _chats.Where(x =>
+                x.Title.Contains(_search, StringComparison.OrdinalIgnoreCase) ||
+                x.LastPreview.Contains(_search, StringComparison.OrdinalIgnoreCase));
+
+    private ChatItem? SelectedChat => _chats.FirstOrDefault(x => x.Id == _selectedChatId);
+
+    private List<ChatMessage> SelectedMessages =>
+        _messages.TryGetValue(_selectedChatId, out var list) ? list : new();
+
+    private void SelectChat(int id) => _selectedChatId = id;
+
+    private void SendFakeMessage()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+
+        var time = DateTime.Now.ToString("HH:mm");
+        SelectedMessages.Add(new ChatMessage(true, _draft.Trim(), time));
+
+        var chat = _chats.First(x => x.Id == _selectedChatId);
+        _chats = _chats.Select(x => x.Id == chat.Id
+            ? x with { LastPreview = _draft.Trim(), LastTime = time }
+            : x).ToList();
+
+        _draft = "";
+    }
+
+    private string GetChatItemStyle(int chatId)
+        => chatId == _selectedChatId
+            ? "cursor:pointer; border-radius:8px; background: var(--mud-palette-primary); color: var(--mud-palette-primary-text);"
+            : "cursor:pointer; border-radius:8px;";
+
+    private static string GetMessageRowStyle(bool fromMe)
+        => $"display:flex; margin-bottom:10px; justify-content:{(fromMe ? "flex-end" : "flex-start")};";
+
+    private static string GetBubbleStyle(bool fromMe)
+        => fromMe
+            ? "max-width:70%; border-radius:12px; background: var(--mud-palette-primary); color: var(--mud-palette-primary-text);"
+            : "max-width:70%; border-radius:12px; background: var(--mud-palette-background-grey);";
+
+    private record ChatItem(int Id, string Title, string Subtitle, string Avatar, string LastPreview, string LastTime);
+    private record ChatMessage(bool FromMe, string Text, string Time);
+}

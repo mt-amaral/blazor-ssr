@@ -37,6 +37,33 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
         }
     }
     
+    public async Task<(Response<string?>, short)> DeleteAsync(long userId, CancellationToken ct)
+    {
+        try
+        {
+            var user = await userManager.FindByIdAsync(userId.ToString());
+            if (user == null)
+                return (new Response<string?>(null, "Usuário não encontrado."), 404);
+
+            var result = await userManager.DeleteAsync(user);
+
+            if (!result.Succeeded)
+            {
+                var errors = result.Errors.Select(e => e.Description).ToList();
+                return (new Response<string?>($"Erro ao deletar usuário {user.UserName}", errors), 400);
+            }
+
+            await context.SaveChangesAsync(ct);
+
+            return (new Response<string?>(null, $"Usuário {user.UserName} removido com sucesso!"), 200);
+        }
+        catch
+        {
+            return (new Response<string?>(null, $"Erro ao remover usuário: {userId}"), 400);
+        }
+    }
+
+    
     public async Task<(Response<LoginOutDto?>, short)> LoginAsync(LoginInDto request)
     {
         var user = await userManager.FindByEmailAsync(request.Email);

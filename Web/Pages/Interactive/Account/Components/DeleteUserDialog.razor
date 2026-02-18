@@ -1,0 +1,98 @@
+﻿
+@using Web.Services.Abstractions
+
+@inject IAccountService AccountService
+@inject ISnackbar Snackbar
+
+<MudDialog>
+
+    <TitleContent>
+        Deletar usuário
+    </TitleContent>
+    <DialogContent>
+        <MudText Typo="Typo.body1">
+            Tem certeza que deseja deletar este usuário?
+        </MudText>
+
+        <MudText Typo="Typo.body2" Class="mt-2">
+            <b>ID:</b> @UserId
+        </MudText>
+
+        @if (!string.IsNullOrWhiteSpace(UserNameOrEmail))
+        {
+            <MudText Typo="Typo.body2">
+                <b>Usuário:</b> @UserNameOrEmail
+            </MudText>
+        }
+
+        <MudAlert Severity="Severity.Warning" Variant="Variant.Outlined" Class="mt-3">
+            Essa ação é permanente.
+        </MudAlert>
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text"
+                   OnClick="Cancel"
+                   Disabled="_deleting">
+            Cancelar
+        </MudButton>
+
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Error"
+                   OnClick="ConfirmDeleteAsync"
+                   Disabled="_deleting">
+            Deletar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@* params do modal *@
+@code {
+    [CascadingParameter]
+    private IMudDialogInstance MudDialog { get; set; }
+    [Parameter] public long UserId { get; set; }
+    [Parameter] public string? UserNameOrEmail { get; set; }
+
+    private bool _deleting;
+
+    private void Cancel() => MudDialog.Cancel();
+
+    private async Task ConfirmDeleteAsync()
+    {
+        _deleting = true;
+
+        try
+        {
+            // se seu service não tiver ct, remova o ct daqui
+            var (response, status) = await AccountService.DeleteAsync(UserId, CancellationToken.None);
+
+            var ok = status is >= 200 and < 300;
+            if (ok)
+            {
+                Snackbar.Add(response?.Message ?? "Usuário removido com sucesso.", Severity.Success);
+                MudDialog.Close(DialogResult.Ok(true));
+                return;
+            }
+
+            if (response?.Errors?.Any() == true)
+            {
+                foreach (var err in response.Errors)
+                    Snackbar.Add(err, Severity.Error);
+            }
+            else
+            {
+                Snackbar.Add(response?.Message ?? "Falha ao remover usuário.", Severity.Error);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _deleting = false;
+        }
+    }
+}
+
+

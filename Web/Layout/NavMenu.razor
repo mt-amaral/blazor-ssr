@@ -4,8 +4,28 @@
 @inject NavigationManager NavigationManager
 
 <MudNavMenu>
-    <MudNavLink Href=""  Icon="@Icons.Material.Filled.Lock">Auth</MudNavLink>
-    <MudNavLink Href="Account/User" Icon="@Icons.Material.Filled.Lock">Account</MudNavLink>
+    <MudNavLink Href="" Icon="@Icons.Material.Filled.Lock">
+        Auth
+    </MudNavLink>
+    <MudNavLink Href="Chat" Icon="@Icons.Material.Filled.Chat">
+        Chat
+    </MudNavLink>
+
+    <MudNavGroup Title="User Management"
+                 Icon="@Icons.Material.Filled.AdminPanelSettings"
+                 Expanded="true">
+
+        <MudNavLink Href="Account/Users"
+                    Icon="@Icons.Material.Filled.Group">
+            Users
+        </MudNavLink>
+
+        <MudNavLink Href="Account/Permissions"
+                    Icon="@Icons.Material.Filled.Security">
+            Permissions
+        </MudNavLink>
+
+    </MudNavGroup>
 </MudNavMenu>
 
 

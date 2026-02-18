@@ -1,0 +1,230 @@
+﻿@page "/Account/Users"
+@using Web.Components.Response
+@using Web.Dto
+@using Web.Dto.Account
+@using Web.Pages.Interactive.Account.Components
+@using Web.Services.Abstractions
+
+
+@inject IAccountService AccountService
+@inject IDialogService DialogService
+@inject ISnackbar Snackbar
+
+@rendermode InteractiveServer
+
+<UserFilterBar Name="@_filterInDto.Name"
+               NameChanged="@(v => _filterInDto.Name = v)"
+               Email="@_filterInDto.Email"
+               EmailChanged="@(v => _filterInDto.Email = v)"
+               OnClear="OnClear"
+               OnCreate="OnCreate"
+               OnDelete="OnDelete" />
+
+
+
+<MudTable @ref="_table"
+          T="UserOutDto"
+          Hover="true"
+          Dense="true"
+          MultiSelection="false"
+          Striped="true" 
+          SelectionChangeable="_selectionChangeable"
+          SelectOnRowClick="@_selectOnRowClick"
+          @bind-SelectedItems="_selectedUsers"
+          ServerData="LoadUsersServer"
+          Loading="_isLoading">
+
+    <ToolBarContent>
+        <MudSpacer />
+    </ToolBarContent>
+
+    <HeaderContent>
+        <MudTh>ID</MudTh>
+        <MudTh>Nome</MudTh>
+        <MudTh>Email</MudTh>
+        <MudTh></MudTh> @* coluna do lápis *@
+    </HeaderContent>
+
+    <RowTemplate>
+        <MudTd DataLabel="ID">@context.Id</MudTd>
+        <MudTd DataLabel="Nome">@context.FullName</MudTd>
+        <MudTd DataLabel="Email">@context.Email</MudTd>
+
+        <MudTd DataLabel="Ações" Class="d-flex justify-end" Style="gap:6px;">
+            <MudIconButton Icon="@Icons.Material.Filled.Edit"
+                           Color="Color.Primary"
+                           Size="Size.Small" />
+
+            <MudIconButton Icon="@Icons.Material.Filled.Delete"
+                           Color="Color.Error"
+                           Size="Size.Small"
+                           OnClick="@(async _ => await OpenDeleteDialog(context.Id, context.Email))" />
+        </MudTd>
+    </RowTemplate>
+
+    <LoadingContent>
+        @for (var i = 0; i < 5; i++)
+        {
+            <MudTr>
+                <MudTd Style="width:10%;"><MudSkeleton Width="100%" Height="18px" /></MudTd>
+                <MudTd Style="width:35%;"><MudSkeleton Width="100%" Height="18px" /></MudTd>
+                <MudTd Style="width:45%;"><MudSkeleton Width="100%" Height="18px" /></MudTd>
+                <MudTd Style="width:200px;"><MudSkeleton Width="100%" Height="18px" /></MudTd>
+            </MudTr>
+        }
+    </LoadingContent>
+
+    <PagerContent>
+        <MudTablePager PageSizeOptions="new int[] { 10, 25, 50, 100 }" />
+    </PagerContent>
+
+</MudTable>
+
+
+@code {
+    private MudTable<UserOutDto>? _table;
+
+    private ResponsePage<UserOutDto?>? _pagedUsers;
+    private UserFilterInDto _filterInDto = new();
+
+    private bool _isLoading;
+
+    private bool _selectOnRowClick = true;
+    private bool _selectionChangeable = true;
+
+    private HashSet<UserOutDto> _selectedUsers = new();
+
+    private string _search = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+
+        _pagedUsers ??= new ResponsePage<UserOutDto?>();
+    }
+
+    private async Task<TableData<UserOutDto>> LoadUsersServer(TableState state, CancellationToken ct)
+    {
+        _isLoading = true;
+
+        try
+        {
+
+            var page = state.Page + 1;
+            var pageSize = state.PageSize;
+
+            _filterInDto.Page = page;
+            _filterInDto.PageSize = pageSize;
+            
+
+            _pagedUsers = await AccountService
+                .ListUsersPaginatedAsync(_filterInDto, ct)
+                .HandlePageAsync(Snackbar);
+
+            _pagedUsers ??= new ResponsePage<UserOutDto?>();
+
+            var items = (_pagedUsers.Items ?? Enumerable.Empty<UserOutDto?>())
+                .Where(x => x is not null)
+                .Select(x => x!)
+                .ToList();
+
+            return new TableData<UserOutDto>
+            {
+                Items = items,
+                TotalItems = _pagedUsers.TotalCount
+            };
+        }
+        finally
+        {
+            _isLoading = false;
+        }
+    }
+
+    private async Task OnSearchChanged(string _)
+    {
+        // volta pra primeira página e recarrega
+        if (_table is not null)
+        {
+             _table.NavigateTo(0);
+            await _table.ReloadServerData();
+        }
+    }
+    
+    private async Task OnClear()
+    {
+        _filterInDto.Name = null;
+        _filterInDto.Email = null;
+
+        if (_table is not null)
+        {
+            _table.NavigateTo(0);
+            await _table.ReloadServerData();
+        }
+    }
+    
+    private async Task OnCreate()
+    {
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small
+        };
+
+        var dialog = DialogService.Show<RegisterUserDialog>("", options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool ok && ok)
+        {
+            if (_table is not null)
+            {
+                _table.NavigateTo(0);
+                await _table.ReloadServerData();
+            }
+        }
+    }
+    
+    private async Task OnDelete()
+    {
+        if (_selectedUsers is null || _selectedUsers.Count == 0)
+        {
+            Snackbar.Add("Selecione pelo menos um usuário para deletar.", Severity.Warning);
+            return;
+        }
+
+        // No seu modal atual, ele recebe 1 usuário.
+        // Então aqui vamos deletar o primeiro selecionado (mínimo pra funcionar).
+        // Se quiser deletar em lote depois, a gente ajusta.
+        var user = _selectedUsers.First();
+
+        await OpenDeleteDialog(user.Id, user.Email);
+    }
+
+    
+    private async Task OpenDeleteDialog(long userId, string? userLabel)
+    {
+        var parameters = new DialogParameters
+        {
+            ["UserId"] = userId,
+            ["UserNameOrEmail"] = userLabel
+        };
+
+        var options = new DialogOptions
+        {
+            CloseOnEscapeKey = true,
+            FullWidth = true,
+            MaxWidth = MaxWidth.Small
+        };
+
+        var dialog = DialogService.Show<DeleteUserDialog>("", parameters, options);
+        var result = await dialog.Result;
+
+        if (!result.Canceled && result.Data is bool ok && ok)
+        {
+            if (_table is not null)
+            {
+                _table.NavigateTo(0);
+                await _table.ReloadServerData();
+            }
+        }
+    }
+}

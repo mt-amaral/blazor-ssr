@@ -65,7 +65,7 @@ builder.Services.AddCors(options =>
 
 builder.Services.ConfigureApplicationCookie(options =>
 {
-    options.LoginPath = "/Account/Login";
+    options.LoginPath = "/Login";
     options.LogoutPath = "/Logout";
     options.Events.OnRedirectToLogin = context =>
     {
