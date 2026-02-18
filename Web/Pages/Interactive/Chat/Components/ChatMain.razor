@@ -1,0 +1,211 @@
+﻿@using MudBlazor
+@using Microsoft.AspNetCore.Components.Web
+@using Microsoft.JSInterop
+
+<div class="chat-main">
+
+    <!-- Top Bar -->
+    <MudPaper Elevation="0" Class="chat-topbar">
+        <div class="chat-topbar-left">
+            <MudAvatar Size="Size.Small" Variant="Variant.Filled">AI</MudAvatar>
+            <div>
+                <MudText Typo="Typo.subtitle1">Assistant</MudText>
+                <MudText Typo="Typo.caption" Color="Color.Primary">
+                    @(IsGenerating ? "Generating…" : "Ready")
+                </MudText>
+            </div>
+        </div>
+    </MudPaper>
+
+    <!-- Messages Area (SCROLL CONTAINER) -->
+    <div class="chat-messages" @ref="_scrollHost">
+        <div class="chat-messages-inner">
+
+            @foreach (var m in Messages)
+            {
+                var isUser = m.Role == Role.User;
+                var rowClass = isUser ? "chat-msg-row is-user" : "chat-msg-row is-ai";
+                var bubbleClass = isUser ? "chat-bubble bubble-user" : "chat-bubble bubble-ai";
+
+                <div class="@rowClass">
+
+                    @if (!isUser)
+                    {
+                        <MudAvatar Size="Size.Small" Variant="Variant.Filled" Class="chat-avatar">AI</MudAvatar>
+                    }
+
+                    <MudPaper Elevation="0" Class="@bubbleClass">
+                        <div class="chat-bubble-head">
+                            <MudText Typo="Typo.subtitle2">
+                                @(isUser ? "You" : "Assistant")
+                            </MudText>
+
+                            <MudText Typo="Typo.caption" Color="Color.Primary">@m.Time</MudText>
+                        </div>
+
+                        <MudText Typo="Typo.body1" Class="chat-bubble-text">
+                            @m.Text
+                        </MudText>
+
+                        @if (!isUser)
+                        {
+                            <div class="chat-actions">
+                                <MudButton Variant="Variant.Text" Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.ContentCopy"
+                                           OnClick="@(() => CopyToClipboard(m.Text))">
+                                    Copy
+                                </MudButton>
+                                <MudButton Variant="Variant.Text" Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.ThumbUpOffAlt"
+                                           OnClick="@(() => OnFeedback.InvokeAsync((m, true)))">
+                                    Good
+                                </MudButton>
+                                <MudButton Variant="Variant.Text" Size="Size.Small"
+                                           StartIcon="@Icons.Material.Filled.ThumbDownOffAlt"
+                                           OnClick="@(() => OnFeedback.InvokeAsync((m, false)))">
+                                    Bad
+                                </MudButton>
+                            </div>
+                        }
+                    </MudPaper>
+
+                    @if (isUser)
+                    {
+                        <MudAvatar Size="Size.Small" Variant="Variant.Filled" Class="chat-avatar">U</MudAvatar>
+                    }
+                </div>
+            }
+
+            @if (IsGenerating)
+            {
+                <div class="chat-msg-row is-ai">
+                    <MudAvatar Size="Size.Small" Variant="Variant.Filled" Class="chat-avatar">AI</MudAvatar>
+
+                    <MudPaper Elevation="0" Class="chat-bubble bubble-ai">
+                        <div class="chat-bubble-head">
+                            <MudText Typo="Typo.subtitle2">Assistant</MudText>
+                            <MudText Typo="Typo.caption" Color="Color.Primary">now</MudText>
+                        </div>
+
+                        <div style="margin-top:10px;">
+                            <MudSkeleton Width="70%" Height="16px" />
+                            <MudSkeleton Width="90%" Height="16px" Class="mt-2" />
+                            <MudSkeleton Width="55%" Height="16px" Class="mt-2" />
+                        </div>
+                    </MudPaper>
+                </div>
+            }
+
+        </div>
+    </div>
+
+    <!-- Composer -->
+    <MudPaper Elevation="0" Class="chat-composer">
+        <div class="chat-composer-inner">
+
+            <MudTextField T="string"
+                          Value="@Draft"
+                          ValueChanged="@((string v) => DraftChanged.InvokeAsync(v))"
+                          Placeholder="Message the assistant…"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          Lines="2"
+                          MaxLines="6"
+                          Immediate="true"
+                          Class="chat-input"
+                          OnKeyDown="HandleKeyDown" />
+
+            @if (IsGenerating)
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Error"
+                           StartIcon="@Icons.Material.Filled.StopCircle"
+                           OnClick="OnStop">
+                    Stop
+                </MudButton>
+            }
+            else
+            {
+                <MudButton Variant="Variant.Filled"
+                           Color="Color.Primary"
+                           EndIcon="@Icons.Material.Filled.Send"
+                           OnClick="OnSend"
+                           Disabled="@string.IsNullOrWhiteSpace(Draft)">
+                    Send
+                </MudButton>
+            }
+
+        </div>
+    </MudPaper>
+
+</div>
+
+@code {
+    [Inject] private ISnackbar Snackbar { get; set; } = default!;
+    [Inject] private IJSRuntime JS { get; set; } = default!;
+
+    [Parameter] public bool IsGenerating { get; set; }
+    [Parameter, EditorRequired] public List<AiMessage> Messages { get; set; } = new();
+
+    [Parameter] public string Draft { get; set; } = "";
+    [Parameter, EditorRequired] public EventCallback<string> DraftChanged { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback OnSend { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnStop { get; set; }
+
+    [Parameter] public EventCallback<(AiMessage message, bool isGood)> OnFeedback { get; set; }
+
+    private ElementReference _scrollHost;
+    private int _lastCount = -1;
+    private bool _lastGenerating;
+    private bool _pendingScroll;
+
+    protected override void OnParametersSet()
+    {
+        // se mudou quantidade de mensagens ou estado de geração, rola pro fim
+        var count = Messages?.Count ?? 0;
+
+        if (count != _lastCount || IsGenerating != _lastGenerating)
+            _pendingScroll = true;
+
+        _lastCount = count;
+        _lastGenerating = IsGenerating;
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (_pendingScroll)
+        {
+            _pendingScroll = false;
+            await JS.InvokeVoidAsync("chatScroll.toBottom", _scrollHost);
+        }
+    }
+
+    // Enter = envia | Shift+Enter = nova linha
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (IsGenerating) return;
+
+        if (e.Key == "Enter" && !e.ShiftKey)
+        {
+            if (!string.IsNullOrWhiteSpace(Draft))
+                await OnSend.InvokeAsync();
+        }
+    }
+
+    private async Task CopyToClipboard(string text)
+    {
+        try
+        {
+            await JS.InvokeVoidAsync("navigator.clipboard.writeText", text);
+            Snackbar.Add("Copied to clipboard", Severity.Success);
+        }
+        catch
+        {
+            Snackbar.Add("Could not copy", Severity.Error);
+        }
+    }
+
+    public enum Role { User, Assistant }
+    public record AiMessage(Role Role, string Text, string Time);
+}

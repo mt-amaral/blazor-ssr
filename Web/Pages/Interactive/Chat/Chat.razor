@@ -1,0 +1,122 @@
+﻿@page "/Chat"
+@using MudBlazor
+@using Web.Pages.Interactive.Chat.Components
+
+<MudPaper Elevation="0" Class="chat-root">
+
+    <ChatSidebar IsGenerating="_isGenerating"
+                 Threads="_threads"
+                 SelectedThreadId="_selectedThreadId"
+                 OnSelectThread="SelectThread"
+                 OnNewChat="NewChat" />
+
+    <ChatMain IsGenerating="@_isGenerating"
+              Messages="CurrentMessages"
+              Draft="@_draft"
+              DraftChanged="@((string v) => _draft = v)"
+              OnSend="SendFakePrompt"
+              OnStop="StopFakeGeneration" />
+
+</MudPaper>
+
+
+
+@code {
+    private string _model = "gpt-4o-mini";
+    private string _draft = "";
+    private bool _isGenerating;
+
+    private int _selectedThreadId = 1;
+
+    // reuse os records do Sidebar/Main pra não duplicar: (aliases)
+    private List<ChatSidebar.ChatThread> _threads = new()
+    {
+        new(1, "Invoice issue", "Today"),
+        new(2, "Refactor suggestions", "Yesterday"),
+        new(3, "UI layout ideas", "Mon"),
+    };
+
+    private readonly Dictionary<int, List<ChatMain.AiMessage>> _threadMessages = new()
+    {
+        [1] = new()
+        {
+            new(ChatMain.Role.Assistant, "Hi! I'm a demo assistant UI.\nAsk me anything (no backend).", "09:00"),
+            new(ChatMain.Role.User, "Show me a longer answer layout.", "09:01"),
+            new(ChatMain.Role.Assistant,
+                "Sure.\n\n- This layout is closer to an AI assistant.\n- Messages are wider and structured.\n- Includes actions like Copy/Feedback.\n\nLater you can plug streaming tokens here.",
+                "09:01"),
+        },
+        [2] = new()
+        {
+            new(ChatMain.Role.User, "How would you refactor a service layer?", "Yesterday"),
+            new(ChatMain.Role.Assistant, "Start by isolating DTOs, then add a thin orchestration layer, and keep IO at the edges.", "Yesterday"),
+        },
+        [3] = new()
+        {
+            new(ChatMain.Role.User, "Any minimal sidebar ideas?", "Mon"),
+            new(ChatMain.Role.Assistant, "Keep it slim: New Chat + a short list of recent threads.", "Mon"),
+        },
+    };
+
+    private List<ChatMain.AiMessage> CurrentMessages =>
+        _threadMessages.TryGetValue(_selectedThreadId, out var list) ? list : new();
+
+    private void SelectThread(int id) => _selectedThreadId = id;
+
+    private void NewChat()
+    {
+        if (_isGenerating) return;
+
+        var newId = (_threads.Count == 0 ? 1 : _threads.Max(x => x.Id) + 1);
+
+        _threads.Insert(0, new ChatSidebar.ChatThread(newId, "New chat", "Now"));
+        _threadMessages[newId] = new List<ChatMain.AiMessage>(); // vazio
+
+        _selectedThreadId = newId;
+        _draft = "";
+    }
+
+    private async Task SendFakePrompt()
+    {
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+
+        var text = _draft.Trim();
+        var time = DateTime.Now.ToString("HH:mm");
+
+        // adiciona msg do usuário
+        CurrentMessages.Add(new ChatMain.AiMessage(ChatMain.Role.User, text, time));
+
+        // limpa o draft
+        _draft = "";
+
+        // pega o thread atual
+        var currentThread = _threads.First(t => t.Id == _selectedThreadId);
+
+        // ✅ Título só muda se ainda estiver como "New chat"
+        var newTitle = currentThread.Title == "New chat"
+            ? (text.Length > 28 ? text[..28] + "…" : text)
+            : currentThread.Title;
+
+        // atualiza UpdatedAt sempre, e move pro topo
+        var updated = currentThread with { Title = newTitle, UpdatedAt = "Now" };
+        _threads.RemoveAll(t => t.Id == _selectedThreadId);
+        _threads.Insert(0, updated);
+
+        _isGenerating = true;
+        StateHasChanged();
+
+        await Task.Delay(900);
+
+        CurrentMessages.Add(new ChatMain.AiMessage(
+            ChatMain.Role.Assistant,
+            "This is a fake AI response.\n\nReplace this with your real AI call later.",
+            DateTime.Now.ToString("HH:mm")
+        ));
+
+        _isGenerating = false;
+    }
+
+
+
+    private void StopFakeGeneration() => _isGenerating = false;
+}

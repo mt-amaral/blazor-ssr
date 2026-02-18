@@ -59,9 +59,13 @@
   <ItemGroup>
     <AdditionalFiles Include="Layout\MainLayout.razor" />
     <AdditionalFiles Include="Layout\NavMenu.razor" />
-    <AdditionalFiles Include="Pages\Auth.razor" />
     <AdditionalFiles Include="Pages\NoInteractive\Login.razor" />
     <AdditionalFiles Include="Pages\NoInteractive\_Imports.razor" />
+  </ItemGroup>
+
+
+  <ItemGroup>
+    <Content Remove="Pages\Interactive\Chat\Components\MessageList.razor" />
   </ItemGroup>
 
 </Project>

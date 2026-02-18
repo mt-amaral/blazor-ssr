@@ -1,0 +1,44 @@
+﻿@using MudBlazor
+
+<MudPaper Elevation="0" Class="chat-sidebar">
+    <MudButton Variant="Variant.Outlined"
+               StartIcon="@Icons.Material.Filled.Add"
+               OnClick="OnNewChat"
+               Disabled="IsGenerating"
+               FullWidth="true">
+        New chat
+    </MudButton>
+
+    <MudText Typo="Typo.caption" Color="Color.Primary" Class="mt-2">Recent</MudText>
+
+    <MudList T="ChatThread" Dense="true" Class="chat-thread-list">
+        @foreach (var t in Threads)
+        {
+            <MudListItem T="ChatThread"
+                         OnClick="@(() => OnSelectThread.InvokeAsync(t.Id))"
+                         Class="@GetThreadClass(t.Id)">
+                <MudListItemText>
+                    <MudText Typo="Typo.body2" Class="chat-thread-title">
+                        @t.Title
+                    </MudText>
+                    <MudText Typo="Typo.caption" Color="Color.Primary">@t.UpdatedAt</MudText>
+                </MudListItemText>
+            </MudListItem>
+        }
+    </MudList>
+</MudPaper>
+
+@code {
+    [Parameter] public bool IsGenerating { get; set; }
+
+    [Parameter, EditorRequired] public List<ChatThread> Threads { get; set; } = new();
+    [Parameter] public int SelectedThreadId { get; set; }
+
+    [Parameter, EditorRequired] public EventCallback<int> OnSelectThread { get; set; }
+    [Parameter, EditorRequired] public EventCallback OnNewChat { get; set; }
+
+    private string GetThreadClass(int id)
+        => id == SelectedThreadId ? "thread-item active" : "thread-item";
+
+    public record ChatThread(int Id, string Title, string UpdatedAt);
+}
