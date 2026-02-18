@@ -19,7 +19,7 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
             if (existing != null)
                 return (new Response<string?>(null, "Já existe um usuário registrado com esse email."), 400);
             
-            var user = new User(userName: request.Email, email: request.Email);
+            var user = new User(userName: request.Name, email: request.Email);
 
             var statusCreate = await userManager.CreateAsync(user, request.Password);
             if (!statusCreate.Succeeded)

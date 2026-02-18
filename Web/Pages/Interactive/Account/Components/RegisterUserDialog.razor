@@ -13,30 +13,37 @@
         Criar usuário
     </TitleContent>
     <DialogContent>
-    <MudForm @ref="_form">
-        <MudTextField @bind-Value="_model.Email"
-                      Label="Email"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      For="@(() => _model.Email)"
-                      Required="true"/>
+        <MudForm @ref="_form">
+            <MudTextField @bind-Value="_model.Email"
+                          Label="Nome"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          For="@(() => _model.Name)"
+                          Required="true"/>
+            
+            <MudTextField @bind-Value="_model.Email"
+                          Label="Email"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          For="@(() => _model.Email)"
+                          Required="true"/>
 
-        <MudTextField @bind-Value="_model.Password"
-                      Label="Password"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      For="@(() => _model.Password)"
-                      Required="true"
-                      InputType="InputType.Password"/>
+            <MudTextField @bind-Value="_model.Password"
+                          Label="Password"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          For="@(() => _model.Password)"
+                          Required="true"
+                          InputType="InputType.Password"/>
 
-        <MudTextField @bind-Value="_model.ConfirmPassword"
-                      Label="Confirm password"
-                      Variant="Variant.Outlined"
-                      Margin="Margin.Dense"
-                      For="@(() => _model.ConfirmPassword)"
-                      Required="true"
-                      InputType="InputType.Password"/>
-    </MudForm>
+            <MudTextField @bind-Value="_model.ConfirmPassword"
+                          Label="Confirm password"
+                          Variant="Variant.Outlined"
+                          Margin="Margin.Dense"
+                          For="@(() => _model.ConfirmPassword)"
+                          Required="true"
+                          InputType="InputType.Password"/>
+        </MudForm>
     </DialogContent>
  
 

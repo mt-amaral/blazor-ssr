@@ -4,6 +4,11 @@ namespace Web.Dto.Account;
 
 public sealed class RegisterInDto
 {
+    [Required(ErrorMessage = "Name is required")]
+    [EmailAddress]
+    [Display(Name = "Name")]
+    public string Name { get; set; } = "";
+    
     [Required]
     [EmailAddress]
     [Display(Name = "Email")]
