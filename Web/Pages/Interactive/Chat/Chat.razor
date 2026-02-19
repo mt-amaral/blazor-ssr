@@ -1,122 +1,309 @@
 ﻿@page "/Chat"
 @using MudBlazor
 @using Web.Pages.Interactive.Chat.Components
+@using Web.Services.Abstractions
+@using Web.Dto.Chat  @* ajuste namespace dos seus DTOs *@
+
+@inject IChatService ChatService
+@inject ISnackbar Snackbar
 
 <MudPaper Elevation="0" Class="chat-root">
 
     <ChatSidebar IsGenerating="_isGenerating"
                  Threads="_threads"
                  SelectedThreadId="_selectedThreadId"
-                 OnSelectThread="SelectThread"
-                 OnNewChat="NewChat" />
+                 OnSelectThread="SelectThreadAsync"
+                 OnNewChat="NewChatAsync" />
 
     <ChatMain IsGenerating="@_isGenerating"
-              Messages="CurrentMessages"
+              Messages="_currentMessages"
               Draft="@_draft"
               DraftChanged="@((string v) => _draft = v)"
-              OnSend="SendFakePrompt"
-              OnStop="StopFakeGeneration" />
-
+              OnSend="SendPromptAsync"
+              OnStop="StopFakeGeneration"
+              OnLoadMore="LoadMoreAsync" />
 </MudPaper>
 
-
-
 @code {
-    private string _model = "gpt-4o-mini";
     private string _draft = "";
     private bool _isGenerating;
 
-    private int _selectedThreadId = 1;
+    private Guid? _selectedThreadId;
 
-    // reuse os records do Sidebar/Main pra não duplicar: (aliases)
-    private List<ChatSidebar.ChatThread> _threads = new()
+    // threads do sidebar (você já tem isso vindo do backend)
+    private List<ChatSidebar.ChatThread> _threads = new();
+
+    // mensagens do thread selecionado (já no formato do ChatMain)
+    private List<ChatMain.AiMessage> _currentMessages = new();
+
+    // controle de paginação por cursor para o thread atual
+    private string? _nextCursor;
+    private bool _hasMore;
+    private bool _loadingMsgs;
+
+    protected override async Task OnInitializedAsync()
     {
-        new(1, "Invoice issue", "Today"),
-        new(2, "Refactor suggestions", "Yesterday"),
-        new(3, "UI layout ideas", "Mon"),
-    };
+        await LoadThreadsAsync();
+    }
 
-    private readonly Dictionary<int, List<ChatMain.AiMessage>> _threadMessages = new()
+    // =========================
+    // THREADS
+    // =========================
+    private async Task LoadThreadsAsync()
     {
-        [1] = new()
+        // Você já tem o método para threads no seu serviço (GetThreadByUserAsync).
+        // Vou manter a ideia geral aqui, mas foquei no ListMsgs.
+        var (resp, status) = await ChatService.GetThreadByUserAsync();
+        if (status is < 200 or >= 300)
         {
-            new(ChatMain.Role.Assistant, "Hi! I'm a demo assistant UI.\nAsk me anything (no backend).", "09:00"),
-            new(ChatMain.Role.User, "Show me a longer answer layout.", "09:01"),
-            new(ChatMain.Role.Assistant,
-                "Sure.\n\n- This layout is closer to an AI assistant.\n- Messages are wider and structured.\n- Includes actions like Copy/Feedback.\n\nLater you can plug streaming tokens here.",
-                "09:01"),
-        },
-        [2] = new()
+            Snackbar.Add(resp?.Message ?? "Falha ao carregar conversas.", Severity.Error);
+            return;
+        }
+
+        var list = resp?.Data ?? new List<ChatThreadOutDto?>();
+
+        _threads = list
+            .Where(x => x is not null)
+            .Select(x => x!)
+            .Select(t => new ChatSidebar.ChatThread(t.Id, t.Title ?? "New chat", t.UpdatedAt ?? "Now"))
+            .ToList();
+
+        if (_threads.Count > 0)
         {
-            new(ChatMain.Role.User, "How would you refactor a service layer?", "Yesterday"),
-            new(ChatMain.Role.Assistant, "Start by isolating DTOs, then add a thin orchestration layer, and keep IO at the edges.", "Yesterday"),
-        },
-        [3] = new()
+            _selectedThreadId = _threads[0].Id;
+            await LoadMsgsRecentAsync(_selectedThreadId.Value);
+        }
+        else
         {
-            new(ChatMain.Role.User, "Any minimal sidebar ideas?", "Mon"),
-            new(ChatMain.Role.Assistant, "Keep it slim: New Chat + a short list of recent threads.", "Mon"),
-        },
-    };
+            // opcional: cria uma conversa e já carrega msgs
+            await NewChatAsync();
+        }
+    }
 
-    private List<ChatMain.AiMessage> CurrentMessages =>
-        _threadMessages.TryGetValue(_selectedThreadId, out var list) ? list : new();
-
-    private void SelectThread(int id) => _selectedThreadId = id;
-
-    private void NewChat()
+    private async Task SelectThreadAsync(Guid id)
     {
         if (_isGenerating) return;
 
-        var newId = (_threads.Count == 0 ? 1 : _threads.Max(x => x.Id) + 1);
-
-        _threads.Insert(0, new ChatSidebar.ChatThread(newId, "New chat", "Now"));
-        _threadMessages[newId] = new List<ChatMain.AiMessage>(); // vazio
-
-        _selectedThreadId = newId;
+        _selectedThreadId = id;
         _draft = "";
+
+        await LoadMsgsRecentAsync(id);
     }
 
-    private async Task SendFakePrompt()
+    private async Task NewChatAsync()
     {
-        if (string.IsNullOrWhiteSpace(_draft)) return;
+        if (_isGenerating) return;
 
-        var text = _draft.Trim();
-        var time = DateTime.Now.ToString("HH:mm");
+        var (resp, status) = await ChatService.CreateThreadAsync("New chat");
+        if (status is < 200 or >= 300)
+        {
+            Snackbar.Add(resp?.Message ?? "Falha ao criar conversa.", Severity.Error);
+            return;
+        }
 
-        // adiciona msg do usuário
-        CurrentMessages.Add(new ChatMain.AiMessage(ChatMain.Role.User, text, time));
+        var thread = resp?.Data;
+        if (thread is null)
+        {
+            Snackbar.Add("Thread não retornou do backend.", Severity.Error);
+            return;
+        }
 
-        // limpa o draft
+        _threads.Insert(0, new ChatSidebar.ChatThread(thread.Id, thread.Title ?? "New chat", thread.UpdatedAt ?? "Now"));
+        _selectedThreadId = thread.Id;
         _draft = "";
 
-        // pega o thread atual
-        var currentThread = _threads.First(t => t.Id == _selectedThreadId);
-
-        // ✅ Título só muda se ainda estiver como "New chat"
-        var newTitle = currentThread.Title == "New chat"
-            ? (text.Length > 28 ? text[..28] + "…" : text)
-            : currentThread.Title;
-
-        // atualiza UpdatedAt sempre, e move pro topo
-        var updated = currentThread with { Title = newTitle, UpdatedAt = "Now" };
-        _threads.RemoveAll(t => t.Id == _selectedThreadId);
-        _threads.Insert(0, updated);
-
-        _isGenerating = true;
-        StateHasChanged();
-
-        await Task.Delay(900);
-
-        CurrentMessages.Add(new ChatMain.AiMessage(
-            ChatMain.Role.Assistant,
-            "This is a fake AI response.\n\nReplace this with your real AI call later.",
-            DateTime.Now.ToString("HH:mm")
-        ));
-
-        _isGenerating = false;
+        await LoadMsgsRecentAsync(thread.Id);
     }
 
+    // =========================
+    // MESSAGES (ListMsgsAsync)
+    // =========================
 
+    // carrega as mensagens mais recentes (primeira carga do thread)
+    private async Task LoadMsgsRecentAsync(Guid threadId)
+    {
+        _loadingMsgs = true;
+        try
+        {
+            var input = new MsgListInDto(ThreadId: threadId, Limit: 50, BeforeCursor: null);
+
+            var (resp, status) = await ChatService.ListMsgsAsync(input);
+
+            if (status is < 200 or >= 300)
+            {
+                Snackbar.Add(resp?.Message ?? "Falha ao carregar mensagens.", Severity.Error);
+                _currentMessages = new();
+                _hasMore = false;
+                _nextCursor = null;
+                return;
+            }
+
+            var data = resp?.Data;
+            if (data is null)
+            {
+                _currentMessages = new();
+                _hasMore = false;
+                _nextCursor = null;
+                return;
+            }
+
+            _hasMore = data.HasMore;
+            _nextCursor = data.NextCursor;
+
+            // converte DTO -> UI model
+            _currentMessages = data.Items
+                .OrderBy(m => m.CreatedAt) // garante ordem antiga->nova
+                .Select(ToUiMessage)
+                .ToList();
+        }
+        finally
+        {
+            _loadingMsgs = false;
+            StateHasChanged();
+        }
+    }
+
+    // carrega mensagens mais antigas (scroll pra cima)
+    private async Task LoadMoreAsync()
+    {
+        if (_loadingMsgs) return;
+        if (_selectedThreadId is null) return;
+        if (!_hasMore) return;
+        if (string.IsNullOrWhiteSpace(_nextCursor)) return;
+
+        _loadingMsgs = true;
+        try
+        {
+            var threadId = _selectedThreadId.Value;
+
+            var input = new MsgListInDto(ThreadId: threadId, Limit: 50, BeforeCursor: _nextCursor);
+            var (resp, status) = await ChatService.ListMsgsAsync(input);
+
+            if (status is < 200 or >= 300)
+            {
+                Snackbar.Add(resp?.Message ?? "Falha ao carregar mais mensagens.", Severity.Error);
+                return;
+            }
+
+            var data = resp?.Data;
+            if (data is null) return;
+
+            _hasMore = data.HasMore;
+            _nextCursor = data.NextCursor;
+
+            // insere no topo (mensagens antigas)
+            var older = data.Items
+                .OrderBy(m => m.CreatedAt)
+                .Select(ToUiMessage)
+                .ToList();
+
+            // evita duplicatas por Id (caso chegue repetido)
+            var existingIds = _currentMessages.Select(x => x.Id).ToHashSet();
+            var toInsert = older.Where(x => !existingIds.Contains(x.Id)).ToList();
+
+            _currentMessages.InsertRange(0, toInsert);
+        }
+        finally
+        {
+            _loadingMsgs = false;
+            StateHasChanged();
+        }
+    }
+
+    // =========================
+    // SEND (ainda fake)
+    // =========================
+    private async Task SendPromptAsync()
+    {
+        if (_selectedThreadId is null) return;
+        if (string.IsNullOrWhiteSpace(_draft)) return;
+        if (_isGenerating) return;
+
+        var threadId = _selectedThreadId.Value;
+        var text = _draft.Trim();
+        _draft = "";
+
+        try
+        {
+            _isGenerating = true;
+            StateHasChanged();
+
+            var input = new SendMsgInDto(ThreadId: threadId, Content: text);
+
+            var (resp, status) = await ChatService.SendMsgAsync(input);
+
+            if (status is < 200 or >= 300)
+            {
+                Snackbar.Add(resp?.Message ?? "Falha ao enviar mensagem.", Severity.Error);
+                return;
+            }
+
+            var data = resp?.Data;
+            if (data is null)
+            {
+                Snackbar.Add("Resposta inválida do servidor.", Severity.Error);
+                return;
+            }
+
+            // adiciona msg do usuário (persistida)
+            var userUi = ToUiMessage(data.UserMessage);
+            _currentMessages.Add(userUi);
+
+            // adiciona placeholder do bot (persistido)
+            if (data.BotMessage is not null)
+            {
+                var botUi = ToUiMessage(data.BotMessage);
+                _currentMessages.Add(botUi);
+            }
+
+            // opcional: atualiza o thread no topo (UX)
+            var currentThread = _threads.FirstOrDefault(t => t.Id == threadId);
+            if (currentThread is not null && currentThread.Title == "New chat")
+            {
+                var firstTitle = text.Length > 28 ? text[..28] + "…" : text;
+
+                var updated = currentThread with
+                {
+                    Title = firstTitle,
+                    UpdatedAt = "Now"
+                };
+
+                _threads.RemoveAll(t => t.Id == threadId);
+                _threads.Insert(0, updated);
+            }
+            else if (currentThread is not null)
+            {
+                // se quiser só mover pro topo quando enviar msg (sem mudar título)
+                var moved = currentThread with { UpdatedAt = "Now" };
+                _threads.RemoveAll(t => t.Id == threadId);
+                _threads.Insert(0, moved);
+            }
+        }
+        catch (Exception ex)
+        {
+            Snackbar.Add(ex.Message, Severity.Error);
+        }
+        finally
+        {
+            _isGenerating = false;
+            StateHasChanged();
+        }
+    }
 
     private void StopFakeGeneration() => _isGenerating = false;
+
+    // =========================
+    // Mapper DTO -> UI
+    // =========================
+    private ChatMain.AiMessage ToUiMessage(MsgOutDto m)
+    {
+        var role = m.Type == TypeMsg.User
+            ? ChatMain.Role.User
+            : ChatMain.Role.Assistant;
+
+        var time = m.CreatedAt.LocalDateTime.ToString("HH:mm");
+
+        return new ChatMain.AiMessage(role, m.Content, time, m.Id);
+    }
+
 }

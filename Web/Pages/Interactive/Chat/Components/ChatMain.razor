@@ -18,7 +18,7 @@
     </MudPaper>
 
     <!-- Messages Area (SCROLL CONTAINER) -->
-    <div class="chat-messages" @ref="_scrollHost">
+    <div class="chat-messages" @ref="_scrollHost" @onscroll="OnScrollAsync">
         <div class="chat-messages-inner">
 
             @foreach (var m in Messages)
@@ -149,11 +149,18 @@
 
     [Parameter] public string Draft { get; set; } = "";
     [Parameter, EditorRequired] public EventCallback<string> DraftChanged { get; set; }
+    
+    [Parameter] public EventCallback OnLoadMore { get; set; }
+    
+
 
     [Parameter, EditorRequired] public EventCallback OnSend { get; set; }
     [Parameter, EditorRequired] public EventCallback OnStop { get; set; }
 
     [Parameter] public EventCallback<(AiMessage message, bool isGood)> OnFeedback { get; set; }
+    
+    private bool _loadingMore;
+    private bool _suppressAutoScrollOnce;
 
     private ElementReference _scrollHost;
     private int _lastCount = -1;
@@ -162,8 +169,16 @@
 
     protected override void OnParametersSet()
     {
-        // se mudou quantidade de mensagens ou estado de geração, rola pro fim
         var count = Messages?.Count ?? 0;
+
+        // Se acabou de carregar mais antigas, NÃO rola pro fim
+        if (_suppressAutoScrollOnce && count != _lastCount)
+        {
+            _suppressAutoScrollOnce = false;
+            _lastCount = count;
+            _lastGenerating = IsGenerating;
+            return;
+        }
 
         if (count != _lastCount || IsGenerating != _lastGenerating)
             _pendingScroll = true;
@@ -178,6 +193,30 @@
         {
             _pendingScroll = false;
             await JS.InvokeVoidAsync("chatScroll.toBottom", _scrollHost);
+        }
+    }
+    
+    private async Task OnScrollAsync()
+    {
+        if (_loadingMore) return;
+
+        // pega o scrollTop do container
+        var top = await JS.InvokeAsync<double>("chatScroll.getTop", _scrollHost);
+
+        // chegou perto do topo => buscar mais antigas
+        if (top <= 10)
+        {
+            _loadingMore = true;
+            _suppressAutoScrollOnce = true; // evita "toBottom" quando chegar msg antiga
+
+            try
+            {
+                await OnLoadMore.InvokeAsync(); // ✅ AQUI você chama
+            }
+            finally
+            {
+                _loadingMore = false;
+            }
         }
     }
 
@@ -207,5 +246,6 @@
     }
 
     public enum Role { User, Assistant }
-    public record AiMessage(Role Role, string Text, string Time);
+    public record AiMessage(Role Role, string Text, string Time, long Id = 0);
+    
 }

@@ -32,13 +32,13 @@
     [Parameter] public bool IsGenerating { get; set; }
 
     [Parameter, EditorRequired] public List<ChatThread> Threads { get; set; } = new();
-    [Parameter] public int SelectedThreadId { get; set; }
+    [Parameter] public Guid? SelectedThreadId { get; set; }
 
-    [Parameter, EditorRequired] public EventCallback<int> OnSelectThread { get; set; }
+    [Parameter] public EventCallback<Guid> OnSelectThread { get; set; }
     [Parameter, EditorRequired] public EventCallback OnNewChat { get; set; }
 
-    private string GetThreadClass(int id)
+    private string GetThreadClass(Guid id)
         => id == SelectedThreadId ? "thread-item active" : "thread-item";
 
-    public record ChatThread(int Id, string Title, string UpdatedAt);
+    public record ChatThread(Guid Id, string Title, string UpdatedAt);
 }
