@@ -3,55 +3,59 @@
 <MudPaper Class="pa-4 mb-4" Elevation="1">
     <MudGrid Spacing="2">
 
-        <MudItem xs="12" md="4">
-            <MudAutocomplete T="string"
-                             ShrinkLabel="true"
-                             Label="Name"
-                             Margin="Margin.Dense"
-                             Variant="Variant.Outlined"
-                             Value="@Name"
-                             ValueChanged="@NameChanged"
-                             ResetValueOnEmptyText="true"
-                             CoerceText="true"
-                             CoerceValue="true"
-                             SelectValueOnTab="true"
-                             AdornmentIcon="@Icons.Material.Filled.Search"
-                             AdornmentColor="Color.Primary" />
+        <MudItem xs="12" md="3" Style="margin-bottom: 20px">
+            <MudTextField T="string"
+                          ShrinkLabel="true"
+                          Label="Name"
+                          Margin="Margin.Dense"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Value="@Name"
+                          ValueChanged="@NameChanged"
+                          OnKeyDown="HandleKeyDown" />
         </MudItem>
 
-        <MudItem xs="12" md="4">
-            <MudAutocomplete T="string"
-                             ShrinkLabel="true"
-                             Label="Email"
-                             Margin="Margin.Dense"
-                             Variant="Variant.Outlined"
-                             Value="@Email"
-                             ValueChanged="@EmailChanged"
-                             ResetValueOnEmptyText="true"
-                             CoerceText="true"
-                             CoerceValue="true"
-                             SelectValueOnTab="true"
-                             AdornmentIcon="@Icons.Material.Filled.Search"
-                             AdornmentColor="Color.Primary" />
+        <MudItem xs="12" md="3">
+            <MudTextField T="string"
+                          ShrinkLabel="true"
+                          Label="Email"
+                          Margin="Margin.Dense"
+                          Variant="Variant.Outlined"
+                          Immediate="true"
+                          Value="@Email"
+                          ValueChanged="@EmailChanged"
+                          OnKeyDown="HandleKeyDown" />
         </MudItem>
 
         <MudItem xs="12"></MudItem>
 
         <MudItem xs="12" Style="display:flex; justify-content:end; gap:10px;">
             <MudButton Variant="Variant.Filled"
-                       StartIcon="@Icons.Material.Filled.ClearAll"
-                       Color="Color.Transparent"
-                       OnClick="@OnClear">
-                Clear
-            </MudButton>
-
-            <MudButton Variant="Variant.Filled"
                        StartIcon="@Icons.Material.Filled.Add"
                        Color="Color.Primary"
                        OnClick="@OnCreate">
                 Create
             </MudButton>
-            
+
+            <MudSpacer></MudSpacer>
+
+            <MudButton  Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.Search"
+                       IconColor="Color.Primary"
+                       Color="Color.Transparent"
+                       Disabled="@(!CanSearch())"
+                       OnClick="@OnSearch">
+                Search
+            </MudButton>
+
+            <MudButton Variant="Variant.Filled"
+                       StartIcon="@Icons.Material.Filled.ClearAll"
+                       Color="Color.Transparent"
+                       Disabled="@(!CanSearch())"
+                       OnClick="@OnClear">
+                Clear
+            </MudButton>
+
         </MudItem>
 
     </MudGrid>
@@ -63,8 +67,21 @@
 
     [Parameter] public string? Email { get; set; }
     [Parameter] public EventCallback<string?> EmailChanged { get; set; }
-    
+
+    [Parameter] public EventCallback OnSearch { get; set; }
     [Parameter] public EventCallback OnClear { get; set; }
     [Parameter] public EventCallback OnCreate { get; set; }
     [Parameter] public EventCallback OnDelete { get; set; }
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter")
+            await OnSearch.InvokeAsync();
+    }
+    
+    private bool CanSearch()
+    {
+        return !string.IsNullOrWhiteSpace(Name)
+               || !string.IsNullOrWhiteSpace(Email);
+    }
 }

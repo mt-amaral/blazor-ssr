@@ -17,6 +17,8 @@ public class ApplicationDbContext(DbContextOptions<ApplicationDbContext> options
         IdentityUserToken<long>>(options)
 {
     public DbSet<User> User { get; set; }
+    public DbSet<ChatThread> ChatThread { get; set; }
+    public DbSet<ChatMessage> ChatMessage { get; set; }
     
     protected override void OnModelCreating(ModelBuilder modelBuilder)
     {

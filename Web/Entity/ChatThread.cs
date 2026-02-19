@@ -4,26 +4,29 @@ namespace Web.Entity;
 
 public class ChatThread
 {
-    public long Id { get; set; }
+    public ChatThread()
+    {
+        
+    }
+    
+    public Guid Id { get; init; }
 
-    // dono do thread
-    public string UserId { get; set; } = default!;
-    public User User { get; set; } = default!;
 
-    // título
-    public string Title { get; set; } = "New chat";
+    public long UserId { get; private set; } 
 
-    // "soft delete"/arquivar (opcional)
-    public bool IsArchived { get; set; }
-    public DateTimeOffset? ArchivedAt { get; set; }
 
-    // timestamps
-    public DateTimeOffset CreatedAt { get; set; } = DateTimeOffset.UtcNow;
-    public DateTimeOffset UpdatedAt { get; set; } = DateTimeOffset.UtcNow;
+    public User User { get; private set; } 
 
-    // navegação
-    public ICollection<ChatMessage> Messages { get; set; } = new List<ChatMessage>();
 
-    // concorrência (opcional)
-    public byte[] RowVersion { get; set; } = default!;
+    public string Title { get; private set; }  = string.Empty;
+
+    
+
+    public DateTimeOffset CreatedAt { get;  private set; } 
+
+    public DateTimeOffset UpdatedAt { get; private set; } 
+
+
+    public ICollection<ChatMessage> Messages { get; private set; } = new List<ChatMessage>();
+
 }

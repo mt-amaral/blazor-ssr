@@ -123,6 +123,8 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
             
             if (!string.IsNullOrWhiteSpace(filterInDto.Name))
                 query = query.Where(u => u.UserName.Contains(filterInDto.Name));
+            if (!string.IsNullOrWhiteSpace(filterInDto.Email))
+                query = query.Where(u => u.Email.Contains(filterInDto.Email));
 
             var totalCount = await query.CountAsync();
 

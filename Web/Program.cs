@@ -81,6 +81,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 
 // services
 builder.Services.AddScoped<IAccountService, AccountService>();
+builder.Services.AddScoped<IChatService, ChatService>();
 
 
 

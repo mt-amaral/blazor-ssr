@@ -12,10 +12,12 @@
 
 @rendermode InteractiveServer
 
+
 <UserFilterBar Name="@_filterInDto.Name"
                NameChanged="@(v => _filterInDto.Name = v)"
                Email="@_filterInDto.Email"
                EmailChanged="@(v => _filterInDto.Email = v)"
+               OnSearch="OnSearch"
                OnClear="OnClear"
                OnCreate="OnCreate"
                OnDelete="OnDelete" />
@@ -145,6 +147,19 @@
         if (_table is not null)
         {
              _table.NavigateTo(0);
+            await _table.ReloadServerData();
+        }
+    }
+    
+    private async Task OnSearch()
+    {
+ 
+        _filterInDto.Name  = string.IsNullOrWhiteSpace(_filterInDto.Name)  ? null : _filterInDto.Name.Trim();
+        _filterInDto.Email = string.IsNullOrWhiteSpace(_filterInDto.Email) ? null : _filterInDto.Email.Trim();
+
+        if (_table is not null)
+        {
+            _table.NavigateTo(0);
             await _table.ReloadServerData();
         }
     }

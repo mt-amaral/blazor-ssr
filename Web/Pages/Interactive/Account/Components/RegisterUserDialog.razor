@@ -1,78 +1,159 @@
 ﻿@using MudBlazor
-@using Web.Dto
 @using Web.Dto.Account
 @using Web.Services.Abstractions
+@using Microsoft.AspNetCore.Components.Web
 
 @inject IAccountService AccountService
 @inject ISnackbar Snackbar
 
-
 <MudDialog>
-        
     <TitleContent>
-        Criar usuário
+        <MudStack Spacing=1>
+            <MudStack Row="true" AlignItems="AlignItems.Center" Spacing="2">
+                <MudIcon Icon="@Icons.Material.Filled.PersonAdd" Size="Size.Medium" />
+                <MudText Typo="Typo.h6">Criar usuário</MudText>
+            </MudStack>
+            <MudText Typo="Typo.body2" Color="Color.Secondary">
+                Preencha os dados abaixo para cadastrar um novo usuário.
+            </MudText>
+        </MudStack>
     </TitleContent>
+
     <DialogContent>
-        <MudForm @ref="_form">
-            <MudTextField @bind-Value="_model.Email"
-                          Label="Nome"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          For="@(() => _model.Name)"
-                          Required="true"/>
-            
-            <MudTextField @bind-Value="_model.Email"
-                          Label="Email"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          For="@(() => _model.Email)"
-                          Required="true"/>
+        <MudForm @ref="_form" @bind-IsValid="_isValid">
+            <MudGrid Spacing="2" Class="mt-2">
 
-            <MudTextField @bind-Value="_model.Password"
-                          Label="Password"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          For="@(() => _model.Password)"
-                          Required="true"
-                          InputType="InputType.Password"/>
+                <MudItem xs="12"  md="6" >
+                    <MudTextField @bind-Value="_model.Name"
+                                  Label="Nome"
+                                  Placeholder="Ex: Mateus Amaral"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  Disabled="_saving"
+                                  Immediate="true"
+                                  For="@(() => _model.Name)" />
+                </MudItem>
 
-            <MudTextField @bind-Value="_model.ConfirmPassword"
-                          Label="Confirm password"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          For="@(() => _model.ConfirmPassword)"
-                          Required="true"
-                          InputType="InputType.Password"/>
+                <MudItem xs="12"  md="6">
+                    <MudTextField @bind-Value="_model.Email"
+                                  Label="Email"
+                                  Placeholder="ex: mateus@email.com"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  Disabled="_saving"
+                                  Immediate="true"
+                                  InputType="InputType.Email"
+                                  For="@(() => _model.Email)" />
+                </MudItem>
+
+                <MudItem xs="12" >
+                    <MudTextField @bind-Value="_model.Password"
+                                  Label="Senha"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  Disabled="_saving"
+                                  Immediate="true"
+                                  AutoComplete="new-password"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  Validation="ValidatePassword"
+                                  For="@(() => _model.Password)" />
+                </MudItem>
+
+                <MudItem xs="12">
+                    <MudTextField @bind-Value="_model.ConfirmPassword"
+                                  Label="Confirmar senha"
+                                  Variant="Variant.Outlined"
+                                  Margin="Margin.Dense"
+                                  Required="true"
+                                  Disabled="_saving"
+                                  Immediate="true"
+                                  AutoComplete="new-password"
+                                  InputType="@(_showPassword ? InputType.Text : InputType.Password)"
+                                  Adornment="Adornment.End"
+                                  AdornmentIcon="@(_showPassword ? Icons.Material.Filled.VisibilityOff : Icons.Material.Filled.Visibility)"
+                                  OnAdornmentClick="TogglePasswordVisibility"
+                                  Validation="ValidateConfirmPassword"
+                                  OnKeyDown="HandleKeyDown"
+                                  For="@(() => _model.ConfirmPassword)" />
+                </MudItem>
+                
+
+            </MudGrid>
         </MudForm>
     </DialogContent>
- 
-
     <DialogActions>
-        <MudButton Variant="Variant.Text"
-                   OnClick="Cancel"
-                   Disabled="_saving">
-            Cancelar
-        </MudButton>
+        <MudStack Class="px-4 pb-3" Row="true" AlignItems="AlignItems.Center" Spacing="2">
 
-        <MudButton Variant="Variant.Filled"
-                   Color="Color.Primary"
-                   OnClick="SubmitAsync"
-                   Disabled="_saving">
-            Criar
-        </MudButton>
+            <MudButton Variant="Variant.Text"
+                       Color="Color.Secondary"
+                       OnClick="Cancel"
+                       Disabled="_saving">
+                Cancelar
+            </MudButton>
+
+            <MudSpacer />
+
+            <MudButton Variant="Variant.Filled"
+                       Color="Color.Primary"
+                       StartIcon="@Icons.Material.Filled.Add"
+                       OnClick="SubmitAsync"
+                       Disabled="@(!_isValid || _saving)"
+                       Loading="_saving"
+                       LoadingPosition="LoadingPosition.Start">
+                Criar
+            </MudButton>
+
+        </MudStack>
     </DialogActions>
 </MudDialog>
 
 @code {
-    [CascadingParameter]
-    private IMudDialogInstance MudDialog { get; set; }
-    
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
     private MudForm? _form;
     private bool _saving;
+    private bool _showPassword;
+    private bool _isValid;
+
     private RegisterInDto _model = new();
 
     private void Cancel() => MudDialog.Cancel();
-    
+
+    private void TogglePasswordVisibility() => _showPassword = !_showPassword;
+
+    private async Task HandleKeyDown(KeyboardEventArgs e)
+    {
+        if (e.Key == "Enter" && _isValid && !_saving)
+            await SubmitAsync();
+    }
+
+    private string? ValidatePassword(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Senha é obrigatória.";
+
+        if (value.Length < 8)
+            return "A senha deve ter pelo menos 8 caracteres.";
+
+        return null;
+    }
+
+    private string? ValidateConfirmPassword(string? value)
+    {
+        if (string.IsNullOrWhiteSpace(value))
+            return "Confirmação é obrigatória.";
+
+        if (!string.Equals(value, _model.Password, StringComparison.Ordinal))
+            return "As senhas não conferem.";
+
+        return null;
+    }
 
     private async Task SubmitAsync()
     {
@@ -80,6 +161,10 @@
 
         await _form.Validate();
         if (!_form.IsValid) return;
+
+        // Normaliza antes de enviar
+        _model.Name = string.IsNullOrWhiteSpace(_model.Name) ? _model.Name : _model.Name.Trim();
+        _model.Email = string.IsNullOrWhiteSpace(_model.Email) ? _model.Email : _model.Email.Trim();
 
         _saving = true;
         try
