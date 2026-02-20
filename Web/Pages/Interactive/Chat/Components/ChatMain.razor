@@ -42,10 +42,21 @@
 
                             <MudText Typo="Typo.caption" Color="Color.Primary">@m.Time</MudText>
                         </div>
-
-                        <MudText Typo="Typo.body1" Class="chat-bubble-text">
-                            @m.Text
-                        </MudText>
+                        
+                        @if (!isUser && string.IsNullOrWhiteSpace(m.Text))
+                        {
+                            <div style="margin-top:10px;">
+                                <MudSkeleton Width="70%" Height="16px" />
+                                <MudSkeleton Width="90%" Height="16px" Class="mt-2" />
+                                <MudSkeleton Width="55%" Height="16px" Class="mt-2" />
+                            </div>
+                        }
+                        else
+                        {
+                            <MudText Typo="Typo.body1" Class="chat-bubble-text">
+                                @m.Text
+                            </MudText>
+                        }
 
                         @if (!isUser)
                         {
@@ -73,26 +84,6 @@
                     {
                         <MudAvatar Size="Size.Small" Variant="Variant.Filled" Class="chat-avatar">U</MudAvatar>
                     }
-                </div>
-            }
-
-            @if (IsGenerating)
-            {
-                <div class="chat-msg-row is-ai">
-                    <MudAvatar Size="Size.Small" Variant="Variant.Filled" Class="chat-avatar">AI</MudAvatar>
-
-                    <MudPaper Elevation="0" Class="chat-bubble bubble-ai">
-                        <div class="chat-bubble-head">
-                            <MudText Typo="Typo.subtitle2">Assistant</MudText>
-                            <MudText Typo="Typo.caption" Color="Color.Primary">now</MudText>
-                        </div>
-
-                        <div style="margin-top:10px;">
-                            <MudSkeleton Width="70%" Height="16px" />
-                            <MudSkeleton Width="90%" Height="16px" Class="mt-2" />
-                            <MudSkeleton Width="55%" Height="16px" Class="mt-2" />
-                        </div>
-                    </MudPaper>
                 </div>
             }
 

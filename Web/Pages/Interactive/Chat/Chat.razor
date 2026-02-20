@@ -2,7 +2,7 @@
 @using MudBlazor
 @using Web.Pages.Interactive.Chat.Components
 @using Web.Services.Abstractions
-@using Web.Dto.Chat  @* ajuste namespace dos seus DTOs *@
+@using Web.Dto.Chat
 
 @inject IChatService ChatService
 @inject ISnackbar Snackbar
@@ -20,8 +20,9 @@
               Draft="@_draft"
               DraftChanged="@((string v) => _draft = v)"
               OnSend="SendPromptAsync"
-              OnStop="StopFakeGeneration"
+              OnStop="StopGeneration"
               OnLoadMore="LoadMoreAsync" />
+
 </MudPaper>
 
 @code {
@@ -30,13 +31,9 @@
 
     private Guid? _selectedThreadId;
 
-    // threads do sidebar (você já tem isso vindo do backend)
     private List<ChatSidebar.ChatThread> _threads = new();
-
-    // mensagens do thread selecionado (já no formato do ChatMain)
     private List<ChatMain.AiMessage> _currentMessages = new();
 
-    // controle de paginação por cursor para o thread atual
     private string? _nextCursor;
     private bool _hasMore;
     private bool _loadingMsgs;
@@ -51,8 +48,6 @@
     // =========================
     private async Task LoadThreadsAsync()
     {
-        // Você já tem o método para threads no seu serviço (GetThreadByUserAsync).
-        // Vou manter a ideia geral aqui, mas foquei no ListMsgs.
         var (resp, status) = await ChatService.GetThreadByUserAsync();
         if (status is < 200 or >= 300)
         {
@@ -75,7 +70,6 @@
         }
         else
         {
-            // opcional: cria uma conversa e já carrega msgs
             await NewChatAsync();
         }
     }
@@ -118,8 +112,6 @@
     // =========================
     // MESSAGES (ListMsgsAsync)
     // =========================
-
-    // carrega as mensagens mais recentes (primeira carga do thread)
     private async Task LoadMsgsRecentAsync(Guid threadId)
     {
         _loadingMsgs = true;
@@ -135,6 +127,7 @@
                 _currentMessages = new();
                 _hasMore = false;
                 _nextCursor = null;
+                _isGenerating = false;
                 return;
             }
 
@@ -144,17 +137,21 @@
                 _currentMessages = new();
                 _hasMore = false;
                 _nextCursor = null;
+                _isGenerating = false;
                 return;
             }
 
             _hasMore = data.HasMore;
             _nextCursor = data.NextCursor;
 
-            // converte DTO -> UI model
             _currentMessages = data.Items
-                .OrderBy(m => m.CreatedAt) // garante ordem antiga->nova
+                .OrderBy(m => m.CreatedAt)
                 .Select(ToUiMessage)
                 .ToList();
+
+            // Se a última mensagem for do bot e estiver vazia, considera "gerando"
+            _isGenerating = _currentMessages.LastOrDefault() is { Role: ChatMain.Role.Assistant } last
+                            && string.IsNullOrWhiteSpace(last.Text);
         }
         finally
         {
@@ -163,7 +160,6 @@
         }
     }
 
-    // carrega mensagens mais antigas (scroll pra cima)
     private async Task LoadMoreAsync()
     {
         if (_loadingMsgs) return;
@@ -191,13 +187,11 @@
             _hasMore = data.HasMore;
             _nextCursor = data.NextCursor;
 
-            // insere no topo (mensagens antigas)
             var older = data.Items
                 .OrderBy(m => m.CreatedAt)
                 .Select(ToUiMessage)
                 .ToList();
 
-            // evita duplicatas por Id (caso chegue repetido)
             var existingIds = _currentMessages.Select(x => x.Id).ToHashSet();
             var toInsert = older.Where(x => !existingIds.Contains(x.Id)).ToList();
 
@@ -211,7 +205,7 @@
     }
 
     // =========================
-    // SEND (ainda fake)
+    // SEND (real)
     // =========================
     private async Task SendPromptAsync()
     {
@@ -225,9 +219,6 @@
 
         try
         {
-            _isGenerating = true;
-            StateHasChanged();
-
             var input = new SendMsgInDto(ThreadId: threadId, Content: text);
 
             var (resp, status) = await ChatService.SendMsgAsync(input);
@@ -246,37 +237,27 @@
             }
 
             // adiciona msg do usuário (persistida)
-            var userUi = ToUiMessage(data.UserMessage);
-            _currentMessages.Add(userUi);
+            _currentMessages.Add(ToUiMessage(data.UserMessage));
 
             // adiciona placeholder do bot (persistido)
             if (data.BotMessage is not null)
             {
-                var botUi = ToUiMessage(data.BotMessage);
-                _currentMessages.Add(botUi);
+                _currentMessages.Add(ToUiMessage(data.BotMessage));
+
+                // se vier vazio, ativa "gerando" (skeleton + stop)
+                if (string.IsNullOrWhiteSpace(data.BotMessage.Content))
+                    _isGenerating = true;
             }
 
-            // opcional: atualiza o thread no topo (UX)
+            // título só muda 1 vez (primeira msg)
             var currentThread = _threads.FirstOrDefault(t => t.Id == threadId);
             if (currentThread is not null && currentThread.Title == "New chat")
             {
                 var firstTitle = text.Length > 28 ? text[..28] + "…" : text;
-
-                var updated = currentThread with
-                {
-                    Title = firstTitle,
-                    UpdatedAt = "Now"
-                };
+                var updated = currentThread with { Title = firstTitle, UpdatedAt = "Now" };
 
                 _threads.RemoveAll(t => t.Id == threadId);
                 _threads.Insert(0, updated);
-            }
-            else if (currentThread is not null)
-            {
-                // se quiser só mover pro topo quando enviar msg (sem mudar título)
-                var moved = currentThread with { UpdatedAt = "Now" };
-                _threads.RemoveAll(t => t.Id == threadId);
-                _threads.Insert(0, moved);
             }
         }
         catch (Exception ex)
@@ -285,12 +266,26 @@
         }
         finally
         {
-            _isGenerating = false;
             StateHasChanged();
         }
     }
 
-    private void StopFakeGeneration() => _isGenerating = false;
+    // =========================
+    // STOP (remove placeholder vazio)
+    // =========================
+    private void StopGeneration()
+    {
+        var last = _currentMessages.LastOrDefault();
+        if (last is not null &&
+            last.Role == ChatMain.Role.Assistant &&
+            string.IsNullOrWhiteSpace(last.Text))
+        {
+            _currentMessages.Remove(last);
+        }
+
+        _isGenerating = false;
+        StateHasChanged();
+    }
 
     // =========================
     // Mapper DTO -> UI
@@ -305,5 +300,4 @@
 
         return new ChatMain.AiMessage(role, m.Content, time, m.Id);
     }
-
 }

@@ -2,6 +2,7 @@ using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.SemanticKernel;
 using MudBlazor;
 using MudBlazor.Services;
 using Newtonsoft.Json;
@@ -79,10 +80,28 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
+// IA local
+
+builder.Services.AddOllamaChatCompletion(
+    modelId: "llama3.1:latest",
+    endpoint: new Uri("http://localhost:11434")
+);
+builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
+
+builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Information));
+builder.Services.AddTransient(sp => new Kernel(sp));
+
+
 // services
 builder.Services.AddScoped<IAccountService, AccountService>();
 builder.Services.AddScoped<IChatService, ChatService>();
 builder.Services.AddScoped<IUserLoggedService, UserLoggedService>();
+builder.Services.AddScoped<IChatIAOrchestrator, ChatIAOrchestrator>();
+
+
+// plugin
+
+builder.Services.AddScoped<UserPlugin>();
 
 
 

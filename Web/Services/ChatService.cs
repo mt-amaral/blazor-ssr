@@ -10,7 +10,7 @@ using Web.Services.Abstractions;
 
 namespace Web.Services;
 
-public class ChatService(ApplicationDbContext context, IUserLoggedService userLoggedService) :  IChatService
+public class ChatService(ApplicationDbContext context, IUserLoggedService userLoggedService, IChatIAOrchestrator chatIAOrchestrator) :  IChatService
 {
     public async Task<(Response<ChatThreadOutDto?>, short)> CreateThreadAsync( string? title = "New Chat", CancellationToken ct = default)
     {
@@ -130,76 +130,41 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
         }
     }
 
-    public async Task<(Response<SendMsgOutDto?>, short)> SendMsgAsync(
-        SendMsgInDto input,
-        CancellationToken ct = default)
+    public async Task<(Response<SendMsgOutDto?>, short)> SendMsgAsync(SendMsgInDto input, CancellationToken ct = default)
     {
         try
         {
-            if (input.ThreadId == Guid.Empty)
-                return (new Response<SendMsgOutDto?>(null, "ThreadId inválido."), 400);
-
-            if (string.IsNullOrWhiteSpace(input.Content))
-                return (new Response<SendMsgOutDto?>(null, "Mensagem vazia."), 400);
-
             var user = await userLoggedService.GetUserLoggedAsync();
 
-            // valida se o thread é do usuário
+            // 1) valida thread do user
             var threadOk = await context.ChatThread
-                .AsNoTracking()
                 .AnyAsync(t => t.Id == input.ThreadId && t.UserId == user.Id, ct);
 
             if (!threadOk)
                 return (new Response<SendMsgOutDto?>(null, "Thread não encontrado."), 404);
 
-            var content = input.Content.Trim();
-
-            // cria mensagem do usuário
-            var userMsg = new ChatMessage(
-                input.ThreadId,
-                content,
-                user.Id,
-                TypeMsg.User
-            );
-            // precisa setar tipo (se você não tem setter, ajuste a entidade depois)
-            // aqui vou setar via EF (se propriedade tiver setter privado, não dá)
-            // então assume que você vai permitir setar no construtor ou ter método SetType.
-            // Por enquanto:
-            // userMsg.SetType(TypeMsg.User);
+            // 2) cria msg do user + placeholder bot (vazio)
+            var userMsg = new ChatMessage(input.ThreadId, input.Content.Trim(), user.Id, TypeMsg.User);
+            var botMsg = new ChatMessage(input.ThreadId, "", user.Id, TypeMsg.Bot);
 
             context.ChatMessage.Add(userMsg);
+            context.ChatMessage.Add(botMsg);    
 
-            // opcional: já criar um placeholder do bot (pra UI mostrar "Generating...")
-            // Se você não quiser isso agora, remova esse bloco e retorne BotMessage = null.
-            var botMsg = new ChatMessage(
-                input.ThreadId,
-                string.Empty,   // placeholder vazio (se for usar streaming depois)
-                user.Id,
-                TypeMsg.Bot
-            );
-            // botMsg.SetType(TypeMsg.Bot);
+            await context.SaveChangesAsync(ct); // gera Ids
 
-            context.ChatMessage.Add(botMsg);
+            // 3) chama IA (ollama)
+            var (answer, code) = await chatIAOrchestrator.AskAiAsync(input.ThreadId, userMsg.Content, ct);
 
+            // 4) atualiza placeholder bot
+            botMsg.SetContent(answer.Data!); // se não tiver, mude Content setter ou crie método
             await context.SaveChangesAsync(ct);
 
-            var outUser = new MsgOutDto(
-                userMsg.Id,
-                userMsg.ThreadId,
-                TypeMsg.User,
-                userMsg.Content,
-                userMsg.CreatedAt
+            // 5) retorna DTO pronto pra UI
+            var outDto = new SendMsgOutDto(
+                input.ThreadId,
+                new MsgOutDto(userMsg.Id, userMsg.ThreadId, userMsg.TypeMsg, userMsg.Content, userMsg.CreatedAt),
+                new MsgOutDto(botMsg.Id, botMsg.ThreadId, botMsg.TypeMsg, botMsg.Content, botMsg.CreatedAt)
             );
-
-            var outBot = new MsgOutDto(
-                botMsg.Id,
-                botMsg.ThreadId,
-                TypeMsg.Bot,
-                botMsg.Content,   // vazio por enquanto
-                botMsg.CreatedAt
-            );
-
-            var outDto = new SendMsgOutDto(input.ThreadId, outUser, outBot);
 
             return (new Response<SendMsgOutDto?>(outDto, ""), 200);
         }
@@ -208,6 +173,7 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
             return (new Response<SendMsgOutDto?>(null, ex.Message), 500);
         }
     }
+
     
     
     
