@@ -11,6 +11,7 @@ using Web.Context;
 using Web.Entity.Identity;
 using Web.Middleware;
 using Web.Pages;
+using Web.Plugins;
 using Web.Services;
 using Web.Services.Abstractions;
 
@@ -89,7 +90,7 @@ builder.Services.AddOllamaChatCompletion(
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
 
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Information));
-builder.Services.AddTransient(sp => new Kernel(sp));
+
 
 
 // services
@@ -99,9 +100,36 @@ builder.Services.AddScoped<IUserLoggedService, UserLoggedService>();
 builder.Services.AddScoped<IChatIAOrchestrator, ChatIAOrchestrator>();
 
 
-// plugin
+// plugins - auto discovery and registration
+var pluginTypes = AppDomain.CurrentDomain.GetAssemblies()
+    .SelectMany(s => s.GetTypes())
+    .Where(p => typeof(IPlugin).IsAssignableFrom(p) && p.IsClass && !p.IsAbstract);
 
-builder.Services.AddScoped<UserPlugin>();
+foreach (var pluginType in pluginTypes)
+{
+    builder.Services.AddTransient(pluginType);
+}
+
+// kernel with all registered plugins
+builder.Services.AddScoped<Kernel>(sp =>
+{
+    var kernelBuilder = Kernel.CreateBuilder();
+
+    // Register all IPlugin implementations dynamically
+    foreach (var pluginType in pluginTypes)
+    {
+        var pluginInstance = sp.GetRequiredService(pluginType) as IPlugin;
+        if (pluginInstance != null)
+        {
+            kernelBuilder.Plugins.AddFromObject(pluginInstance, pluginInstance.PluginName);
+        }
+    }
+
+    return kernelBuilder.Build();
+});
+
+
+
 
 
 

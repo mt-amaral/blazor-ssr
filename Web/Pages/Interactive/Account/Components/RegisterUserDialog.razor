@@ -169,7 +169,7 @@
         _saving = true;
         try
         {
-            var (response, status) = await AccountService.RegisterAsync(_model);
+            var (response, status) = await AccountService.RegisterAsync(_model, CancellationToken.None);
 
             var ok = status is >= 200 and < 300;
             if (ok)

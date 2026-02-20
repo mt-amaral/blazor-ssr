@@ -11,7 +11,7 @@ namespace Web.Services;
 public class AccountService(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInMannger) :  IAccountService
 {
     
-    public async Task<(Response<string?>, short)> RegisterAsync(RegisterInDto request)
+    public async Task<(Response<string?>, short)> RegisterAsync(RegisterInDto request, CancellationToken ct)
     {
         try
         {
@@ -28,7 +28,7 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
                 return (new Response<string?>($"Erro ao criar usuário {user.UserName}", errors), 400);
             }
 
-            await context.SaveChangesAsync();
+            await context.SaveChangesAsync(ct);
             return (new Response<string?>(null, $"Usuário {user.UserName} registrado com sucesso!"), 200);
         }
         catch
@@ -64,7 +64,7 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
     }
 
     
-    public async Task<(Response<LoginOutDto?>, short)> LoginAsync(LoginInDto request)
+    public async Task<(Response<LoginOutDto?>, short)> LoginAsync(LoginInDto request, CancellationToken ct)
     {
         var user = await userManager.FindByEmailAsync(request.Email);
         if (user is null)

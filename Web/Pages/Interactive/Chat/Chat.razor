@@ -207,68 +207,96 @@
     // =========================
     // SEND (real)
     // =========================
-    private async Task SendPromptAsync()
+private async Task SendPromptAsync()
+{
+    if (_selectedThreadId is null) return;
+    if (string.IsNullOrWhiteSpace(_draft)) return;
+    if (_isGenerating) return;
+
+    var threadId = _selectedThreadId.Value;
+    var text = _draft.Trim();
+    
+    
+    _draft = "";
+    await InvokeAsync(StateHasChanged);
+    // ✅ 1) Adiciona imediatamente a msg do usuário + placeholder do bot
+    var now = DateTime.Now;
+    var time = now.ToString("HH:mm");
+
+    var tempUserId = -DateTime.UtcNow.Ticks;
+    var tempBotId = tempUserId - 1;
+
+    _currentMessages.Add(new ChatMain.AiMessage(ChatMain.Role.User, text, time, tempUserId));
+    _currentMessages.Add(new ChatMain.AiMessage(ChatMain.Role.Assistant, "", time, tempBotId));
+
+    _isGenerating = true;
+    StateHasChanged(); // força render do skeleton + botão Stop
+
+    try
     {
-        if (_selectedThreadId is null) return;
-        if (string.IsNullOrWhiteSpace(_draft)) return;
-        if (_isGenerating) return;
+        var input = new SendMsgInDto(ThreadId: threadId, Content: text);
+        var (resp, status) = await ChatService.SendMsgAsync(input);
 
-        var threadId = _selectedThreadId.Value;
-        var text = _draft.Trim();
-        _draft = "";
-
-        try
+        if (status is < 200 or >= 300)
         {
-            var input = new SendMsgInDto(ThreadId: threadId, Content: text);
+            Snackbar.Add(resp?.Message ?? "Falha ao enviar mensagem.", Severity.Error);
 
-            var (resp, status) = await ChatService.SendMsgAsync(input);
-
-            if (status is < 200 or >= 300)
-            {
-                Snackbar.Add(resp?.Message ?? "Falha ao enviar mensagem.", Severity.Error);
-                return;
-            }
-
-            var data = resp?.Data;
-            if (data is null)
-            {
-                Snackbar.Add("Resposta inválida do servidor.", Severity.Error);
-                return;
-            }
-
-            // adiciona msg do usuário (persistida)
-            _currentMessages.Add(ToUiMessage(data.UserMessage));
-
-            // adiciona placeholder do bot (persistido)
-            if (data.BotMessage is not null)
-            {
-                _currentMessages.Add(ToUiMessage(data.BotMessage));
-
-                // se vier vazio, ativa "gerando" (skeleton + stop)
-                if (string.IsNullOrWhiteSpace(data.BotMessage.Content))
-                    _isGenerating = true;
-            }
-
-            // título só muda 1 vez (primeira msg)
-            var currentThread = _threads.FirstOrDefault(t => t.Id == threadId);
-            if (currentThread is not null && currentThread.Title == "New chat")
-            {
-                var firstTitle = text.Length > 28 ? text[..28] + "…" : text;
-                var updated = currentThread with { Title = firstTitle, UpdatedAt = "Now" };
-
-                _threads.RemoveAll(t => t.Id == threadId);
-                _threads.Insert(0, updated);
-            }
-        }
-        catch (Exception ex)
-        {
-            Snackbar.Add(ex.Message, Severity.Error);
-        }
-        finally
-        {
+            // remove os temporários
+            _currentMessages.RemoveAll(m => m.Id == tempUserId || m.Id == tempBotId);
+            _isGenerating = false;
             StateHasChanged();
+            return;
+        }
+
+        var data = resp?.Data;
+        if (data is null)
+        {
+            Snackbar.Add("Resposta inválida do servidor.", Severity.Error);
+
+            _currentMessages.RemoveAll(m => m.Id == tempUserId || m.Id == tempBotId);
+            _isGenerating = false;
+            StateHasChanged();
+            return;
+        }
+
+        // ✅ 2) Substitui os temporários pelos persistidos
+        var userUi = ToUiMessage(data.UserMessage);
+        var botUi = data.BotMessage is not null
+            ? ToUiMessage(data.BotMessage)
+            : new ChatMain.AiMessage(ChatMain.Role.Assistant, "", time, tempBotId);
+
+        for (int i = 0; i < _currentMessages.Count; i++)
+        {
+            if (_currentMessages[i].Id == tempUserId) _currentMessages[i] = userUi;
+            if (_currentMessages[i].Id == tempBotId) _currentMessages[i] = botUi;
+        }
+
+        // ✅ 3) Mantém "gerando" apenas se o bot ainda está vazio
+        _isGenerating = string.IsNullOrWhiteSpace(botUi.Text);
+
+        // título só muda 1 vez (primeira msg)
+        var currentThread = _threads.FirstOrDefault(t => t.Id == threadId);
+        if (currentThread is not null && currentThread.Title == "New chat")
+        {
+            var firstTitle = text.Length > 28 ? text[..28] + "…" : text;
+            var updated = currentThread with { Title = firstTitle, UpdatedAt = "Now" };
+
+            _threads.RemoveAll(t => t.Id == threadId);
+            _threads.Insert(0, updated);
         }
     }
+    catch (Exception ex)
+    {
+        Snackbar.Add(ex.Message, Severity.Error);
+
+        _currentMessages.RemoveAll(m => m.Id == tempUserId || m.Id == tempBotId);
+        _isGenerating = false;
+    }
+    finally
+    {
+        StateHasChanged();
+    }
+}
 
     // =========================
     // STOP (remove placeholder vazio)

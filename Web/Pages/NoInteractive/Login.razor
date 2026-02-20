@@ -103,7 +103,7 @@
     {
         errorMessage = null;
 
-        var (response, status) = await AccountService.LoginAsync(Input);
+        var (response, status) = await AccountService.LoginAsync(Input, CancellationToken.None);
 
         if (status != 200)
         {
