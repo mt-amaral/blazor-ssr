@@ -1,0 +1,74 @@
+﻿@using MudBlazor
+@using Web.Dto.Chat
+
+@namespace Web.Pages.Interactive.Chat.Components
+
+<MudDialog Style="height: 70%">
+    <DialogContent >
+        <MudText Typo="Typo.body2" Class="mb-2">
+            Esse texto será usado como <b>contexto</b> (system prompt).
+        </MudText>
+
+        @if (_loading)
+        {
+            <MudProgressLinear Indeterminate="true" Class="mb-3" />
+        }
+
+        <MudTextField T="string"
+                      Label="Contexto"
+                      Variant="Variant.Outlined"
+                      Lines="35"
+                      MaxLines="40"
+                      Immediate="true"
+                      Value="_content"
+                      ValueChanged="@((string v) => _content = v)"
+                      Disabled="_loading"
+                      Required="true" />
+    </DialogContent>
+
+    <DialogActions>
+        <MudButton Variant="Variant.Text" OnClick="Cancel" Disabled="_saving">Cancelar</MudButton>
+        <MudButton Variant="Variant.Filled"
+                   Color="Color.Primary"
+                   OnClick="SaveAsync"
+                   Disabled="_loading || _saving || string.IsNullOrWhiteSpace(_content)">
+            Salvar
+        </MudButton>
+    </DialogActions>
+</MudDialog>
+
+@code {
+    [CascadingParameter] private IMudDialogInstance MudDialog { get; set; } = default!;
+
+    [Parameter, EditorRequired] public Func<Task<string>> OnLoadSettingsAsync { get; set; } = default!;
+    [Parameter, EditorRequired] public Func<string, Task> OnSaveSettingsAsync { get; set; } = default!;
+
+    private bool _loading = true;
+    private bool _saving;
+    private string _content = "";
+
+    protected override async Task OnInitializedAsync()
+    {
+        _content = await OnLoadSettingsAsync();
+        _loading = false;
+    }
+
+    private void Cancel() => MudDialog.Close();
+
+    private async Task SaveAsync()
+    {
+        if (string.IsNullOrWhiteSpace(_content))
+            return;
+
+        _saving = true;
+        try
+        {
+            await OnSaveSettingsAsync(_content);
+            MudDialog.Close(DialogResult.Ok(true));
+        }
+        finally
+        {
+            _saving = false;
+        }
+    }
+}

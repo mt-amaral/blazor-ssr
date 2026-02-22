@@ -30,6 +30,45 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
         }
     }
     
+    public async Task<(Response<ChatSettingsOutDto?>, short)> GetSettingsAsync( CancellationToken ct)
+    {
+        try
+        {
+           var settings =  await context.ChatSettings.AsNoTracking().FirstOrDefaultAsync(ct);
+           if (settings == null)
+               return (new Response<ChatSettingsOutDto?>(null, "Configurações não encontradas"), 404);
+           
+            var reponse = new ChatSettingsOutDto(settings.Content);
+            return (new Response<ChatSettingsOutDto?>(reponse, null), 200);
+        }
+        catch(Exception ex)
+        {
+            return (new Response<ChatSettingsOutDto?>(null, "Erro na consulta de configurações"), 500);
+        }
+    }
+
+
+    public async Task<(Response<ChatSettingsOutDto?>, short)> UpdateSettingsAsync(ChatSettingsUpdateInDto request, CancellationToken ct)
+    {
+        try
+        {
+            var settings =  await context.ChatSettings.FirstOrDefaultAsync(ct);
+            if (settings == null)
+                return (new Response<ChatSettingsOutDto?>(null, "Configurações não encontradas"), 404);
+            
+            settings.SetContent(request.Content);
+            context.ChatSettings.Update(settings);
+            await context.SaveChangesAsync(ct);
+            
+            var reponse = new ChatSettingsOutDto(settings.Content);
+            return (new Response<ChatSettingsOutDto?>(reponse, null), 200);
+        }
+        catch(Exception ex)
+        {
+            return (new Response<ChatSettingsOutDto?>(null, "Erro na consulta de configurações"), 500);
+        }
+    }
+    
     
     public async Task<(Response<List<ChatThreadOutDto?>>, short)> GetThreadByUserAsync( )
     {

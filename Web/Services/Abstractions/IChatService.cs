@@ -9,6 +9,10 @@ public interface IChatService
     Task<(Response<ChatThreadOutDto?>, short)> CreateThreadAsync(string? title = "New Chat",
         CancellationToken ct = default);
 
+    Task<(Response<ChatSettingsOutDto?>, short)> GetSettingsAsync(CancellationToken ct);
+
+    Task<(Response<ChatSettingsOutDto?>, short)> UpdateSettingsAsync(ChatSettingsUpdateInDto request,
+        CancellationToken ct);
     Task<(Response<List<ChatThreadOutDto?>>, short)> GetThreadByUserAsync();
     Task<(Response<MsgListOutDto?>, short)> ListMsgsAsync(MsgListInDto input, CancellationToken ct = default);
     Task<(Response<SendMsgOutDto?>, short)> SendMsgAsync(

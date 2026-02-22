@@ -13,8 +13,14 @@
                 <MudText Typo="Typo.caption" Color="Color.Primary">
                     @(IsGenerating ? "Generating…" : "Ready")
                 </MudText>
+                <MudSpacer />
             </div>
         </div>
+        <MudSpacer />
+        <MudTooltip>
+            <MudIconButton Icon="@Icons.Material.Filled.Settings"          Size="Size.Small"              Color="Color.Default"
+                           OnClick="@((e) => OnOpenSettings.InvokeAsync())" />
+        </MudTooltip>
     </MudPaper>
 
     <!-- Messages Area (SCROLL CONTAINER) -->
@@ -42,7 +48,7 @@
 
                             <MudText Typo="Typo.caption" Color="Color.Primary">@m.Time</MudText>
                         </div>
-                        
+
                         @if (!isUser && string.IsNullOrWhiteSpace(m.Text))
                         {
                             <div style="margin-top:10px;">
@@ -62,8 +68,7 @@
                         {
                             <div class="chat-actions">
                                 <MudButton Variant="Variant.Text" Size="Size.Small"
-                                           StartIcon="@Icons.Material.Filled.ContentCopy"
-                                           OnClick="@(() => CopyToClipboard(m.Text))">
+                                           StartIcon="@Icons.Material.Filled.ContentCopy"                                       OnClick="@(() => CopyToClipboard(m.Text))">
                                     Copy
                                 </MudButton>
                                 <MudButton Variant="Variant.Text" Size="Size.Small"
@@ -94,34 +99,21 @@
     <MudPaper Elevation="0" Class="chat-composer">
         <div class="chat-composer-inner">
 
-            <MudTextField T="string"
-                          Value="@Draft"
-                          ValueChanged="@((string v) => DraftChanged.InvokeAsync(v))"
-                          Placeholder="Message the assistant…"
-                          Variant="Variant.Outlined"
-                          Margin="Margin.Dense"
-                          Lines="2"
-                          MaxLines="6"
-                          Immediate="true"
-                          Class="chat-input"
-                          OnKeyDown="HandleKeyDown" />
+            <MudTextField T="string"                          Value="@Draft"                          ValueChanged="@((string v) => DraftChanged.InvokeAsync(v))"
+                          Placeholder="Message the assistant…"                          Variant="Variant.Outlined" Margin="Margin.Dense" Lines="2"
+                          MaxLines="6" Immediate="true" Class="chat-input" OnKeyDown="HandleKeyDown" />
 
             @if (IsGenerating)
             {
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Error"
-                           StartIcon="@Icons.Material.Filled.StopCircle"
+                <MudButton Variant="Variant.Filled" Color="Color.Error"         StartIcon="@Icons.Material.Filled.StopCircle"
                            OnClick="OnStop">
                     Stop
                 </MudButton>
             }
             else
             {
-                <MudButton Variant="Variant.Filled"
-                           Color="Color.Primary"
-                           EndIcon="@Icons.Material.Filled.Send"
-                           OnClick="OnSend"
-                           Disabled="@string.IsNullOrWhiteSpace(Draft)">
+                <MudButton Variant="Variant.Filled"                           Color="Color.Primary"                           EndIcon="@Icons.Material.Filled.Send"
+                           OnClick="OnSend"                           Disabled="@string.IsNullOrWhiteSpace(Draft)">
                     Send
                 </MudButton>
             }
@@ -140,16 +132,15 @@
 
     [Parameter] public string Draft { get; set; } = "";
     [Parameter, EditorRequired] public EventCallback<string> DraftChanged { get; set; }
-    
-    [Parameter] public EventCallback OnLoadMore { get; set; }
-    
 
+    [Parameter] public EventCallback OnLoadMore { get; set; }
 
     [Parameter, EditorRequired] public EventCallback OnSend { get; set; }
     [Parameter, EditorRequired] public EventCallback OnStop { get; set; }
 
+    [Parameter] public EventCallback OnOpenSettings { get; set; }
     [Parameter] public EventCallback<(AiMessage message, bool isGood)> OnFeedback { get; set; }
-    
+
     private bool _loadingMore;
     private bool _suppressAutoScrollOnce;
 
@@ -186,7 +177,7 @@
             await JS.InvokeVoidAsync("chatScroll.toBottom", _scrollHost);
         }
     }
-    
+
     private async Task OnScrollAsync()
     {
         if (_loadingMore) return;
@@ -238,5 +229,4 @@
 
     public enum Role { User, Assistant }
     public record AiMessage(Role Role, string Text, string Time, long Id = 0);
-    
 }
