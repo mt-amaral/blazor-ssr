@@ -39,7 +39,7 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
             
             var user = await userLoggedService.GetUserLoggedAsync();
 
-            var chat = context.ChatThread.AsNoTracking().Where(c => c.UserId == user.Id).ToList();
+            var chat = context.ChatThread.AsNoTracking().Where(c => c.UserId == user.Id).ToList().OrderByDescending(c => c.Id);
             foreach (var chatThread in chat)
             {
                 response.Add(new (chatThread.Id, chatThread.Title, chatThread.UpdatedAt.ToString()));

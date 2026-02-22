@@ -37,8 +37,8 @@ namespace Web.Migrations
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");
 
-                    b.Property<Guid>("ThreadId")
-                        .HasColumnType("uuid");
+                    b.Property<long>("ThreadId")
+                        .HasColumnType("bigint");
 
                     b.Property<byte>("TypeMsg")
                         .HasColumnType("smallint");
@@ -198,9 +198,11 @@ namespace Web.Migrations
 
             modelBuilder.Entity("Web.Entity.ChatThread", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

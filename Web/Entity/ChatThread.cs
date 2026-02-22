@@ -11,13 +11,12 @@ public class ChatThread
     
     public ChatThread(long userId, string title)
     {
-        Id = Guid.NewGuid(); 
         UserId = userId;
         Title = string.IsNullOrWhiteSpace(title) ? "New Chat" : title.Trim();
         CreatedAt = DateTimeOffset.UtcNow;
     }
     
-    public Guid Id { get; init; }
+    public long Id { get; init; }
 
     public long UserId { get; private set; } 
     

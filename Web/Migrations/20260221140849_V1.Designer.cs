@@ -12,8 +12,8 @@ using Web.Context;
 namespace Web.Migrations
 {
     [DbContext(typeof(ApplicationDbContext))]
-    [Migration("20260219011311_V3")]
-    partial class V3
+    [Migration("20260221140849_V1")]
+    partial class V1
     {
         /// <inheritdoc />
         protected override void BuildTargetModel(ModelBuilder modelBuilder)
@@ -37,8 +37,14 @@ namespace Web.Migrations
                         .IsRequired()
                         .HasColumnType("text");
 
-                    b.Property<Guid>("ThreadId")
-                        .HasColumnType("uuid");
+                    b.Property<DateTimeOffset>("CreatedAt")
+                        .HasColumnType("timestamp with time zone");
+
+                    b.Property<long>("ThreadId")
+                        .HasColumnType("bigint");
+
+                    b.Property<byte>("TypeMsg")
+                        .HasColumnType("smallint");
 
                     b.Property<long>("UserId")
                         .HasColumnType("bigint");
@@ -195,9 +201,11 @@ namespace Web.Migrations
 
             modelBuilder.Entity("Web.Entity.ChatThread", b =>
                 {
-                    b.Property<Guid>("Id")
+                    b.Property<long>("Id")
                         .ValueGeneratedOnAdd()
-                        .HasColumnType("uuid");
+                        .HasColumnType("bigint");
+
+                    NpgsqlPropertyBuilderExtensions.UseIdentityByDefaultColumn(b.Property<long>("Id"));
 
                     b.Property<DateTimeOffset>("CreatedAt")
                         .HasColumnType("timestamp with time zone");

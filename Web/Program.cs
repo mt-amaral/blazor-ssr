@@ -71,7 +71,7 @@ builder.Services.ConfigureApplicationCookie(options =>
     options.LogoutPath = "/Logout";
     options.Events.OnRedirectToLogin = context =>
     {
-        if(context.Request.Path.StartsWithSegments("/api"))
+        if (context.Request.Path.StartsWithSegments("/api"))
         {
             context.Response.StatusCode = StatusCodes.Status401Unauthorized;
             return Task.CompletedTask;
@@ -84,7 +84,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 // IA local
 
 builder.Services.AddOllamaChatCompletion(
-    modelId: "llama3.1:latest",
+    modelId: "qwen3:14b",
     endpoint: new Uri("http://localhost:11434")
 );
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
@@ -161,8 +161,8 @@ builder.Services.AddSwaggerGen(c =>
         Title = "meu APP Documentação Api",
         Description = ""
     });
-    
-    
+
+
     c.AddSecurityDefinition("Cookie", new Microsoft.OpenApi.Models.OpenApiSecurityScheme
     {
         Type = Microsoft.OpenApi.Models.SecuritySchemeType.ApiKey,
@@ -170,7 +170,7 @@ builder.Services.AddSwaggerGen(c =>
         In = Microsoft.OpenApi.Models.ParameterLocation.Header,
         Description = "Cookie de autenticação. Exemplo: .AspNetCore.Identity.Application=..."
     });
-    
+
     c.AddSecurityRequirement(new Microsoft.OpenApi.Models.OpenApiSecurityRequirement
     {
         {
@@ -222,7 +222,7 @@ else if (app.Environment.IsStaging())
         c.SwaggerEndpoint("/swagger/v1/swagger.json", "Admin API V1");
         c.InjectStylesheet("/swagger-ui/SwaggerDark.css");
     });
-  
+
 
     using var scope = app.Services.CreateScope();
     var db = scope.ServiceProvider.GetRequiredService<ApplicationDbContext>();
@@ -237,10 +237,10 @@ else
 }
 
 app.UseHttpsRedirection();
-app.MapStaticAssets(); 
+app.MapStaticAssets();
 
 
-app.UseAuthentication();    
+app.UseAuthentication();
 app.UseAuthorization();
 
 

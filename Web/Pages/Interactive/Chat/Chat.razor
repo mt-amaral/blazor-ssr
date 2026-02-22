@@ -29,7 +29,7 @@
     private string _draft = "";
     private bool _isGenerating;
 
-    private Guid? _selectedThreadId;
+    private long? _selectedThreadId;
 
     private List<ChatSidebar.ChatThread> _threads = new();
     private List<ChatMain.AiMessage> _currentMessages = new();
@@ -74,7 +74,7 @@
         }
     }
 
-    private async Task SelectThreadAsync(Guid id)
+    private async Task SelectThreadAsync(long id)
     {
         if (_isGenerating) return;
 
@@ -112,7 +112,7 @@
     // =========================
     // MESSAGES (ListMsgsAsync)
     // =========================
-    private async Task LoadMsgsRecentAsync(Guid threadId)
+    private async Task LoadMsgsRecentAsync(long threadId)
     {
         _loadingMsgs = true;
         try

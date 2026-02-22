@@ -14,7 +14,7 @@ public class ChatMessage
         
     }
 
-    public ChatMessage(Guid threadId, string content, long userId, TypeMsg type)
+    public ChatMessage(long threadId, string content, long userId, TypeMsg type)
     {
         UserId = userId;
         ThreadId = threadId;
@@ -25,7 +25,7 @@ public class ChatMessage
     public long Id { get; init; }
 
 
-    public Guid ThreadId { get; private set; }
+    public long ThreadId { get; private set; }
 
 
     public ChatThread Thread { get; private set; }

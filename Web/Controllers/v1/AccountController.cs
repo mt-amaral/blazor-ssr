@@ -1,5 +1,7 @@
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using Web.Dto.Account;
+using Web.Services.Abstractions;
 
 namespace Web.Controllers.v1;
 
@@ -7,7 +9,7 @@ namespace Web.Controllers.v1;
 /// <summary>
 /// 
 /// </summary>
-public class AccountController : BaseController
+public class AccountController(IAccountService accountService) : BaseController
 {
     
     /// <summary>
@@ -15,9 +17,11 @@ public class AccountController : BaseController
     /// </summary>
     /// <returns></returns>
     [HttpPost]
-    [Route("teste")]
-    public Task<IActionResult> Teste()
+    [Route("Register")]
+    [AllowAnonymous]
+    public async Task<IActionResult> Register([FromBody] RegisterInDto request, CancellationToken ct)
     {
-        return Task.FromResult<IActionResult>(Ok("teste"));
+        var(data, status) = await accountService.RegisterAsync(request, ct);
+        return StatusCode(status, data);
     }
 }

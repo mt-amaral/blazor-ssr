@@ -7,7 +7,7 @@ public interface IChatIAOrchestrator
 {
 
     Task<(Response<string?>, short)> AskAiAsync(
-        Guid threadId,
+        long threadId,
         string text,
         CancellationToken ct = default);
 

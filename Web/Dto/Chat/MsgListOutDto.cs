@@ -1,7 +1,7 @@
 ﻿namespace Web.Dto.Chat;
 
 public record MsgListOutDto(
-    Guid ThreadId,
+    long ThreadId,
     IReadOnlyList<MsgOutDto> Items,
     string? NextCursor,       
     bool HasMore

@@ -2,7 +2,7 @@
 
 public record MsgOutDto(
     long Id,
-    Guid ThreadId,
+    long ThreadId,
     TypeMsg Type,              
     string Content,
     DateTimeOffset CreatedAt

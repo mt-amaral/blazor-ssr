@@ -7,7 +7,7 @@ using Npgsql.EntityFrameworkCore.PostgreSQL.Metadata;
 namespace Web.Migrations
 {
     /// <inheritdoc />
-    public partial class v1 : Migration
+    public partial class V1 : Migration
     {
         /// <inheritdoc />
         protected override void Up(MigrationBuilder migrationBuilder)
@@ -70,6 +70,28 @@ namespace Web.Migrations
                         name: "FK_IdentityRoleClaim_IdentityRole_RoleId",
                         column: x => x.RoleId,
                         principalTable: "IdentityRole",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateTable(
+                name: "ChatThread",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    Title = table.Column<string>(type: "text", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    UpdatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: true)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChatThread", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChatThread_IdentityUser_UserId",
+                        column: x => x.UserId,
+                        principalTable: "IdentityUser",
                         principalColumn: "Id",
                         onDelete: ReferentialAction.Cascade);
                 });
@@ -159,6 +181,50 @@ namespace Web.Migrations
                         onDelete: ReferentialAction.Cascade);
                 });
 
+            migrationBuilder.CreateTable(
+                name: "ChatMessage",
+                columns: table => new
+                {
+                    Id = table.Column<long>(type: "bigint", nullable: false)
+                        .Annotation("Npgsql:ValueGenerationStrategy", NpgsqlValueGenerationStrategy.IdentityByDefaultColumn),
+                    ThreadId = table.Column<long>(type: "bigint", nullable: false),
+                    TypeMsg = table.Column<byte>(type: "smallint", nullable: false),
+                    UserId = table.Column<long>(type: "bigint", nullable: false),
+                    CreatedAt = table.Column<DateTimeOffset>(type: "timestamp with time zone", nullable: false),
+                    Content = table.Column<string>(type: "text", nullable: false)
+                },
+                constraints: table =>
+                {
+                    table.PrimaryKey("PK_ChatMessage", x => x.Id);
+                    table.ForeignKey(
+                        name: "FK_ChatMessage_ChatThread_ThreadId",
+                        column: x => x.ThreadId,
+                        principalTable: "ChatThread",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                    table.ForeignKey(
+                        name: "FK_ChatMessage_IdentityUser_UserId",
+                        column: x => x.UserId,
+                        principalTable: "IdentityUser",
+                        principalColumn: "Id",
+                        onDelete: ReferentialAction.Cascade);
+                });
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatMessage_ThreadId",
+                table: "ChatMessage",
+                column: "ThreadId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatMessage_UserId",
+                table: "ChatMessage",
+                column: "UserId");
+
+            migrationBuilder.CreateIndex(
+                name: "IX_ChatThread_UserId",
+                table: "ChatThread",
+                column: "UserId");
+
             migrationBuilder.CreateIndex(
                 name: "IX_IdentityClaim_UserId",
                 table: "IdentityClaim",
@@ -202,6 +268,9 @@ namespace Web.Migrations
         protected override void Down(MigrationBuilder migrationBuilder)
         {
             migrationBuilder.DropTable(
+                name: "ChatMessage");
+
+            migrationBuilder.DropTable(
                 name: "IdentityClaim");
 
             migrationBuilder.DropTable(
@@ -215,6 +284,9 @@ namespace Web.Migrations
 
             migrationBuilder.DropTable(
                 name: "IdentityUserToken");
+
+            migrationBuilder.DropTable(
+                name: "ChatThread");
 
             migrationBuilder.DropTable(
                 name: "IdentityRole");

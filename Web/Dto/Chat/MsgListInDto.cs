@@ -1,7 +1,7 @@
 ﻿namespace Web.Dto.Chat;
 
 public record MsgListInDto(
-    Guid ThreadId,
+    long ThreadId,
     int Limit = 50,
     string? BeforeCursor = null 
 );
