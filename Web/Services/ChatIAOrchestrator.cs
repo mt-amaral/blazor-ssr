@@ -2,9 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.Ollama;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Web.Context;
 using Web.Dto;
+using Web.Entity.Enum;
+using Web.Extensions;
 using Web.Services.Abstractions;
 
 namespace Web.Services;
@@ -14,23 +17,21 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
     private readonly Kernel _kernel;
     private readonly ApplicationDbContext _context;
     private readonly IUserLoggedService _userLoggedService;
-    private readonly IChatCompletionService _chat;
 
     public ChatIAOrchestrator(
         Kernel kernel, // O Kernel já deve vir com TODOS os plugins registrados via DI
         ApplicationDbContext context,
-        IUserLoggedService userLoggedService,
-        IChatCompletionService chat)
+        IUserLoggedService userLoggedService)
     {
         _kernel = kernel;
         _context = context;
         _userLoggedService = userLoggedService;
-        _chat = chat;
     }
 
     public async Task<(Response<string?>, short)> AskAiAsync(
         long threadId,
         string text,
+        Models model,
         CancellationToken ct = default)
     {
         try
@@ -79,7 +80,14 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
                 FunctionChoiceBehavior = FunctionChoiceBehavior.None()
             };
 
-            var result = await _chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
+            // Cria dinamicamente OllamaChatCompletionService com o modelo selecionado
+            var modelDescription = model.GetDescription();
+            var dynamicChatService = new OllamaChatCompletionService(
+                modelId: modelDescription,
+                endpoint: new Uri("http://localhost:11434")
+            );
+
+            var result = await dynamicChatService.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
             var content = result?.Content ?? "";
 
             // ✅ Execução Dinâmica de Ferramentas (Desacoplado)
