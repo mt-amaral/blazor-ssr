@@ -1,3 +1,4 @@
+using System.Security.Claims;
 using Microsoft.AspNetCore.Components.Authorization;
 using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
@@ -84,7 +85,7 @@ builder.Services.ConfigureApplicationCookie(options =>
 // IA local
 
 builder.Services.AddOllamaChatCompletion(
-    modelId: "qwen3:14b",
+    modelId: "qwen2.5:3b",
     endpoint: new Uri("http://localhost:11434")
 );
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
@@ -193,7 +194,17 @@ builder.Services.AddDbContext<ApplicationDbContext>(options =>
 builder.Services.AddDatabaseDeveloperPageExceptionFilter();
 
 builder.Services.AddIdentityCore<User>(options =>
-        options.SignIn.RequireConfirmedAccount = false)
+    {
+        options.Password.RequiredLength = 8;             // tamanho mínimo
+        options.Password.RequiredUniqueChars = 1;        // qts chars únicos
+        options.SignIn.RequireConfirmedAccount = false;  // confirmar conta
+        options.User.AllowedUserNameCharacters = "abcdefghijklmnopqrstuvwxyzABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789-._@+"; // Quais caracteres podem existir no UserName
+        options.Lockout.MaxFailedAccessAttempts = 5;  // numero de tentativoas para Login
+        options.Lockout.DefaultLockoutTimeSpan = TimeSpan.FromMinutes(20); // tempo de bloqueio de usuário 
+        options.ClaimsIdentity.UserIdClaimType = ClaimTypes.NameIdentifier; //Testar quais clais quero padronizar 
+        options.ClaimsIdentity.UserNameClaimType = ClaimTypes.Name;
+        options.ClaimsIdentity.RoleClaimType = ClaimTypes.Role;
+    })
     .AddEntityFrameworkStores<ApplicationDbContext>()
     .AddSignInManager()
     .AddDefaultTokenProviders();

@@ -11,13 +11,13 @@ namespace Web.Services;
 public class AccountService(ApplicationDbContext context, UserManager<User> userManager, SignInManager<User> signInMannger) :  IAccountService
 {
     
-    public async Task<(Response<string?>, short)> RegisterAsync(RegisterInDto request, CancellationToken ct)
+    public async Task<(Response<CreateUserOutDto?>, short)> RegisterAsync(RegisterInDto request, CancellationToken ct)
     {
         try
         {
             var existing = await userManager.FindByEmailAsync(request.Email);
             if (existing != null)
-                return (new Response<string?>(null, "Já existe um usuário registrado com esse email."), 400);
+                return (new Response<CreateUserOutDto?>(null, "Já existe um usuário registrado com esse email."), 400);
             
             var user = new User(userName: request.Name, email: request.Email);
 
@@ -25,15 +25,15 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
             if (!statusCreate.Succeeded)
             {
                 var errors = statusCreate.Errors.Select(e => e.Description).ToList();
-                return (new Response<string?>($"Erro ao criar usuário {user.UserName}", errors), 400);
+                return (new Response<CreateUserOutDto?>($"Erro ao criar usuário {user.UserName}", errors), 400);
             }
-
+            var response = new CreateUserOutDto(user.UserName!, user.Email!);
             await context.SaveChangesAsync(ct);
-            return (new Response<string?>(null, $"Usuário {user.UserName} registrado com sucesso!"), 200);
+            return (new Response<CreateUserOutDto?>(response, $"Usuário {user.UserName} registrado com sucesso!"), 200);
         }
         catch
         {
-            return (new Response<string?>(null, $"Erro na criação de usuário: {request.Email}"), 400);
+            return (new Response<CreateUserOutDto?>(null, $"Erro na criação de usuário: {request.Email}"), 400);
         }
     }
     

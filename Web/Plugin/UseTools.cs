@@ -34,18 +34,17 @@ public class UserPlugin : IPlugin
     }
 
     [KernelFunction("create_user")]
-    [Description("Cria uma nova conta de usuário no sistema.")]
-    public async Task<string> CreateUserAsync(
-        [Description("Nome completo")] string name,
-        [Description("E-mail válido")] string email,
-        [Description("Senha forte")] string password,
+    [Description("Creates a new user account in the system.Returns user data and message ")]
+    public async Task<(CreateUserOutDto?, string?)> CreateUserAsync(
+        [Description("Full name")] string name,
+        [Description("Valid email address")] string email,
+        [Description("Strong password")] string password,
         CancellationToken ct = default)
     {
-        _logger.LogInformation("Iniciando criação de usuário: {Email}", email);
+        _logger.LogInformation($"(IA)..Criação de usuário: {email}, {name} ");
         var dto = new RegisterInDto { Name = name, Email = email, Password = password, ConfirmPassword = password };
         var (response, status) = await _accountService.RegisterAsync(dto, ct);
-
-        return status is >= 200 and < 300 ? "OK: Usuário criado com sucesso." : $"ERR: {response?.Message ?? "Erro desconhecido"}";
+        return (response.Data, response.Message);
     }
 
     [KernelFunction("delete_user")]

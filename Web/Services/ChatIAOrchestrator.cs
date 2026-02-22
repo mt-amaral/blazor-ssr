@@ -60,33 +60,50 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             var availableToolsDescription = BuildAvailableToolsDescription();
 
             // ✅ Prompt aprimorado para conversas humanizadas com suporte a ferramentas
-            var systemPrompt = $@"Você é um assistente útil, amigável e conversável.
+            var systemPrompt = $@"You are a helpful, friendly, conversational assistant. Always respond in Brazilian Portuguese (PT-BR).
 
-IMPORTANTE: Mantenha conversas NATURAIS e normais. Responda perguntas simples sem usar ferramentas.
-Use ferramentas APENAS quando o usuário EXPLICITAMENTE PEDIR uma ação específica (criar, deletar, listar, etc).
+IMPORTANT: Keep conversations natural and normal. Answer simple questions without using tools.
+Use tools ONLY when the user EXPLICITLY asks you to perform a specific action (create, delete, update, list, etc).
 
-EXEMPLOS DE QUANDO USAR FERRAMENTAS:
-- 'Cria um usuário chamado João' → use create_user
-- 'Lista todos os usuários' → use list_users
-- 'Delete o usuário 123' → use delete_user
-- 'Cria uma tarefa' → use create_task
+CRITICAL RULE (DELETE and UPDATE):
+- NEVER execute DELETE or UPDATE operations without explicit user confirmation using the confirmation keywords defined below.
+- If the user requests a DELETE or UPDATE, you MUST FIRST respond in TEXT confirming:
+  1) Exactly what will be deleted/updated (entity/type + ID/unique identifier)
+  2) What will happen (impact/effect of the action)
+  3) Ask for a clear confirmation using the confirmation keyword (example: “To confirm, type: CONFIRM_DELETE”)
+- Only AFTER the user confirms using the exact keyword you may call the tool.
+- If confirmation is missing or unclear, ask an objective question to obtain proper approval.
 
-EXEMPLOS DE QUANDO NÃO USAR FERRAMENTAS:
-- 'Oi, como você vai?' → just respond
-- 'O que você consegue fazer?' → describe capabilities without calling tools
-- 'Quanto é 2+2?' → just answer
-- Small talk, perguntas gerais → respond naturally
+CONFIRMATION KEYWORDS (must match exactly):
+- For DELETE operations: CONFIRM_DELETE
+- For UPDATE operations: CONFIRM_UPDATE
+- To cancel any pending operation: CANCEL_OPERATION
 
-FERRAMENTAS DISPONÍVEIS:
-{availableToolsDescription}
+EXAMPLES OF WHEN TO USE TOOLS:
+- ""Create a user named João"" → use create_user
+- ""List all users"" → use list_users
+- ""Delete user 123"" → DO NOT call delete_user yet. First request CONFIRM_DELETE.
+- ""Update user 123 email to x@x.com"" → DO NOT call update_user yet. First request CONFIRM_UPDATE.
 
-Quando o usuário EXPLICITAMENTE PEDIR para usar uma ferramenta, retorne APENAS JSON neste formato:
-JSON: {{""plugin"":""NomeDaFerramenta"",""function"":""nome_funcao"",""parameters"":{{""chave"":""valor""}}}}
+EXAMPLES OF WHEN NOT TO USE TOOLS:
+- ""Hi, how are you?"" → just respond
+- ""What can you do?"" → describe capabilities without calling tools
+- ""What is 2+2?"" → just answer
+- Small talk, general questions → respond naturally
 
-Nunca retorne JSON com verbos ou textos - apenas o JSON da ferramenta.
-Se não tiver certeza se deve chamar uma ferramenta, RESPONDA EM TEXTO primeiro e pergunte o que o usuário quer.";
+AVAILABLE TOOLS:
+{{availableToolsDescription}}
 
-            // Adicionar o prompt dinâmico ao histórico
+WHEN THE USER EXPLICITLY REQUESTS TO USE A TOOL:
+- If it is CREATE/LIST/GET (and does not involve update/delete), and it is clear what to do: return ONLY JSON in the required format.
+- If it is DELETE/UPDATE: return the JSON ONLY AFTER the user confirms with the exact confirmation keyword.
+
+REQUIRED TOOL CALL FORMAT (return ONLY JSON):
+{{""plugin"":""ToolName"",""function"":""function_name"",""parameters"":{{""key"":""value""}}}}
+
+Never return JSON with verbs or text — only the tool JSON.
+If you are not sure whether to call a tool, respond in TEXT first and ask what the user wants.";
+            
             history.AddSystemMessage(systemPrompt);
 
             foreach (var m in historyMsgs)
