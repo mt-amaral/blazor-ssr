@@ -3,6 +3,7 @@
 @using Web.Pages.Interactive.Chat.Components
 @using Web.Services.Abstractions
 @using Web.Dto.Chat
+@using Web.Entity.Enum
 
 @inject IChatService ChatService
 @inject ISnackbar Snackbar
@@ -10,12 +11,13 @@
 
 <MudPaper Elevation="0" Class="chat-root">
 
-    <ChatSidebar IsGenerating="_isGenerating"                 Threads="_threads"                 SelectedThreadId="_selectedThreadId"
-                 OnSelectThread="SelectThreadAsync"                 OnNewChat="NewChatAsync" />
+    <ChatSidebar IsGenerating="_isGenerating" Threads="_threads" SelectedThreadId="_selectedThreadId"
+                 OnSelectThread="SelectThreadAsync" OnNewChat="NewChatAsync" />
 
-    <ChatMain IsGenerating="@_isGenerating"              Messages="_currentMessages"              Draft="@_draft"
-              DraftChanged="@((string v) => _draft = v)"              OnSend="SendPromptAsync"              OnStop="StopGeneration"
-              OnLoadMore="LoadMoreAsync"              OnOpenSettings="OpenSettingsAsync" />
+    <ChatMain IsGenerating="@_isGenerating" Messages="_currentMessages" Draft="@_draft"
+              DraftChanged="@((string v) => _draft = v)" OnSend="SendPromptAsync" OnStop="StopGeneration"
+              OnLoadMore="LoadMoreAsync" OnOpenSettings="OpenSettingsAsync"              SelectedModel="@_selectedModel"
+              SelectedModelChanged="@((m) => _selectedModel = m)" />
 
 </MudPaper>
 
@@ -24,6 +26,7 @@
     private bool _isGenerating;
 
     private long? _selectedThreadId;
+    private Models _selectedModel = Models.Qwen2_5;
 
     private List<ChatSidebar.ChatThread> _threads = new();
     private List<ChatMain.AiMessage> _currentMessages = new();
@@ -228,7 +231,7 @@
 
         try
         {
-            var input = new SendMsgInDto(ThreadId: threadId, Content: text);
+            var input = new SendMsgInDto(ThreadId: threadId, Content: text, Model: _selectedModel);
             var (resp, status) = await ChatService.SendMsgAsync(input);
 
             if (status is < 200 or >= 300)

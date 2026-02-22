@@ -1,6 +1,8 @@
 ﻿@using MudBlazor
 @using Microsoft.AspNetCore.Components.Web
 @using Microsoft.JSInterop
+@using Web.Entity.Enum
+@using Web.Extensions
 
 <div class="chat-main">
 
@@ -16,6 +18,19 @@
                 <MudSpacer />
             </div>
         </div>
+        <MudSpacer />
+        <MudSelect T="Models"
+            Value="@SelectedModel"
+            ValueChanged="@((Models m) => SelectedModelChanged.InvokeAsync(m))"
+            Label="Modelo"
+            Dense="true"
+            Variant="Variant.Outlined"
+            Margin="Margin.Dense">
+            @foreach (var modelValue in Enum.GetValues(typeof(Models)).Cast<Models>())
+            {
+                <MudSelectItem Value="@modelValue">@modelValue.GetDescription()</MudSelectItem>
+            }
+        </MudSelect>
         <MudSpacer />
         <MudTooltip>
             <MudIconButton Icon="@Icons.Material.Filled.Settings"          Size="Size.Small"              Color="Color.Default"
@@ -140,6 +155,9 @@
 
     [Parameter] public EventCallback OnOpenSettings { get; set; }
     [Parameter] public EventCallback<(AiMessage message, bool isGood)> OnFeedback { get; set; }
+
+    [Parameter] public Models SelectedModel { get; set; } = Models.Qwen2_5;
+    [Parameter, EditorRequired] public EventCallback<Models> SelectedModelChanged { get; set; }
 
     private bool _loadingMore;
     private bool _suppressAutoScrollOnce;

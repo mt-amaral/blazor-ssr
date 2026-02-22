@@ -82,12 +82,14 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// IA local
-
+// IA local - Agora criada dinamicamente em ChatIAOrchestrator.AskAiAsync
+// o modelo é selecionado pelo usuário no componente ChatMain.razor
+// Registramos uma instância padrão para configurar as dependências do SK
 builder.Services.AddOllamaChatCompletion(
-    modelId: "qwen2.5:3b",
+    modelId: "qwen2.5:3b", // dummy - será sobrescrito dinamicamente
     endpoint: new Uri("http://localhost:11434")
 );
+
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
 
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Information));
