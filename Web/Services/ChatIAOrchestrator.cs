@@ -65,7 +65,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
 
             // ✅ Prompt aprimorado para conversas humanizadas com suporte a ferramentas
             var systemPrompt = _context.ChatSettings.AsNoTracking().FirstOrDefault()!.Content;
-            
+
             history.AddSystemMessage(systemPrompt);
 
             foreach (var m in historyMsgs)
@@ -84,7 +84,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             };
 
             var result = await _chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
-            
+
             // esse codigo é novo 
             // Cria dinamicamente OllamaChatCompletionService com o modelo selecionado
             //var modelDescription = model.GetDescription();
@@ -95,7 +95,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             //);
             //
             //var result = await dynamicChatService.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
-            
+
             var content = result?.Content ?? "";
 
             // ✅ Execução Dinâmica de Ferramentas (Desacoplado)
@@ -185,7 +185,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             using var doc = JsonDocument.Parse(content);
             var root = doc.RootElement;
 
-            if (!root.TryGetProperty("plugin", out var pluginElement) || 
+            if (!root.TryGetProperty("plugin", out var pluginElement) ||
                 !root.TryGetProperty("function", out var functionElement))
             {
                 // Se estiver usando formato antigo do OpenAI {"name":"plugin.funcao"}, tenta adaptar:
@@ -215,8 +215,8 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             {
                 foreach (var prop in p.EnumerateObject())
                 {
-                    kernelArgs[prop.Name] = prop.Value.ValueKind == JsonValueKind.String 
-                        ? prop.Value.GetString() 
+                    kernelArgs[prop.Name] = prop.Value.ValueKind == JsonValueKind.String
+                        ? prop.Value.GetString()
                         : prop.Value.GetRawText();
                 }
             }
