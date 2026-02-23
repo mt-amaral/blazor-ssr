@@ -2,9 +2,12 @@
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
 using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.Ollama;
 using Microsoft.SemanticKernel.Connectors.OpenAI;
 using Web.Context;
 using Web.Dto;
+using Web.Entity.Enum;
+using Web.Extensions;
 using Web.Services.Abstractions;
 
 namespace Web.Services;
@@ -31,6 +34,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
     public async Task<(Response<string?>, short)> AskAiAsync(
         long threadId,
         string text,
+        Models model,
         CancellationToken ct = default)
     {
         try
@@ -57,7 +61,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             var history = new ChatHistory();
 
             // Gerar descrição dinâmica das ferramentas disponíveis
-            var availableToolsDescription = BuildAvailableToolsDescription();
+            //var availableToolsDescription = BuildAvailableToolsDescription();
 
             // ✅ Prompt aprimorado para conversas humanizadas com suporte a ferramentas
             var systemPrompt = _context.ChatSettings.AsNoTracking().FirstOrDefault()!.Content;
@@ -76,14 +80,26 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
             {
                 // ⚠️ IMPORTANTE: None() faz a IA NUNCA chamar ferramentas automaticamente
                 // A IA só retorna JSON de ferramentas quando explicitamente instruída pelo usuário
-                FunctionChoiceBehavior = FunctionChoiceBehavior.None()
+                FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             };
 
             var result = await _chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
+            
+            // esse codigo é novo 
+            // Cria dinamicamente OllamaChatCompletionService com o modelo selecionado
+            //var modelDescription = model.GetDescription();
+            //var dynamicChatService = new OllamaChatCompletionService(
+            //    modelId: modelDescription,
+            //    endpoint: new Uri("http://localhost:11434")
+            //    
+            //);
+            //
+            //var result = await dynamicChatService.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
+            
             var content = result?.Content ?? "";
 
             // ✅ Execução Dinâmica de Ferramentas (Desacoplado)
-            if (TryParseToolJson(content, out var pluginName, out var functionName, out var kernelArgs))
+            /*if (TryParseToolJson(content, out var pluginName, out var functionName, out var kernelArgs))
             {
                 try
                 {
@@ -102,7 +118,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
                     // Pode capturar exceções específicas do SK caso a função não exista
                     return (new Response<string?>($"Falha ao executar {pluginName}.{functionName}: {ex.Message}", ""), 400);
                 }
-            }
+            }*/
 
             // Resposta normal sem ferramentas
             return (new Response<string?>(content, ""), 200);

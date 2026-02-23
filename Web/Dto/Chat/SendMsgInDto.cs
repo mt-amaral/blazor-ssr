@@ -1,6 +1,9 @@
-﻿namespace Web.Dto.Chat;
+﻿using Web.Entity.Enum;
+
+namespace Web.Dto.Chat;
 
 public record SendMsgInDto(
     long ThreadId,
-    string Content
+    string Content,
+    Models Model
 );

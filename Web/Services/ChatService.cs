@@ -10,38 +10,38 @@ using Web.Services.Abstractions;
 
 namespace Web.Services;
 
-public class ChatService(ApplicationDbContext context, IUserLoggedService userLoggedService, IChatIAOrchestrator chatIAOrchestrator) :  IChatService
+public class ChatService(ApplicationDbContext context, IUserLoggedService userLoggedService, IChatIAOrchestrator chatIAOrchestrator) : IChatService
 {
-    public async Task<(Response<ChatThreadOutDto?>, short)> CreateThreadAsync( string? title = "New Chat", CancellationToken ct = default)
+    public async Task<(Response<ChatThreadOutDto?>, short)> CreateThreadAsync(string? title = "New Chat", CancellationToken ct = default)
     {
         try
         {
             var user = await userLoggedService.GetUserLoggedAsync();
-            var chat = new ChatThread(user.Id,  title);
+            var chat = new ChatThread(user.Id, title);
             await context.ChatThread.AddAsync(chat, ct);
             await context.SaveChangesAsync(ct);
             var response = new ChatThreadOutDto(chat.Id, chat.Title, chat.UpdatedAt.ToString());
-            
+
             return (new Response<ChatThreadOutDto?>(response, null), 200);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return (new Response<ChatThreadOutDto?>(null, "Erro ao criar chat"), 500);
         }
     }
-    
-    public async Task<(Response<ChatSettingsOutDto?>, short)> GetSettingsAsync( CancellationToken ct)
+
+    public async Task<(Response<ChatSettingsOutDto?>, short)> GetSettingsAsync(CancellationToken ct)
     {
         try
         {
-           var settings =  await context.ChatSettings.AsNoTracking().FirstOrDefaultAsync(ct);
-           if (settings == null)
-               return (new Response<ChatSettingsOutDto?>(null, "Configurações não encontradas"), 404);
-           
+            var settings = await context.ChatSettings.AsNoTracking().FirstOrDefaultAsync(ct);
+            if (settings == null)
+                return (new Response<ChatSettingsOutDto?>(null, "Configurações não encontradas"), 404);
+
             var reponse = new ChatSettingsOutDto(settings.Content);
             return (new Response<ChatSettingsOutDto?>(reponse, null), 200);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return (new Response<ChatSettingsOutDto?>(null, "Erro na consulta de configurações"), 500);
         }
@@ -52,39 +52,39 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
     {
         try
         {
-            var settings =  await context.ChatSettings.FirstOrDefaultAsync(ct);
+            var settings = await context.ChatSettings.FirstOrDefaultAsync(ct);
             if (settings == null)
                 return (new Response<ChatSettingsOutDto?>(null, "Configurações não encontradas"), 404);
-            
+
             settings.SetContent(request.Content);
             context.ChatSettings.Update(settings);
             await context.SaveChangesAsync(ct);
-            
+
             var reponse = new ChatSettingsOutDto(settings.Content);
             return (new Response<ChatSettingsOutDto?>(reponse, null), 200);
         }
-        catch(Exception ex)
+        catch (Exception ex)
         {
             return (new Response<ChatSettingsOutDto?>(null, "Erro na consulta de configurações"), 500);
         }
     }
-    
-    
-    public async Task<(Response<List<ChatThreadOutDto?>>, short)> GetThreadByUserAsync( )
+
+
+    public async Task<(Response<List<ChatThreadOutDto?>>, short)> GetThreadByUserAsync()
     {
         try
         {
             var response = new List<ChatThreadOutDto?>();
-            
+
             var user = await userLoggedService.GetUserLoggedAsync();
 
             var chat = context.ChatThread.AsNoTracking().Where(c => c.UserId == user.Id).ToList().OrderByDescending(c => c.Id);
             foreach (var chatThread in chat)
             {
-                response.Add(new (chatThread.Id, chatThread.Title, chatThread.UpdatedAt.ToString()));
+                response.Add(new(chatThread.Id, chatThread.Title, chatThread.UpdatedAt.ToString()));
             }
-            
-            
+
+
             return (new Response<List<ChatThreadOutDto?>>(response, null), 200);
         }
         catch
@@ -92,8 +92,8 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
             return (new Response<List<ChatThreadOutDto?>>(null, ""), 500);
         }
     }
-    
-    
+
+
     public async Task<(Response<MsgListOutDto?>, short)> ListMsgsAsync(MsgListInDto input, CancellationToken ct = default)
     {
         try
@@ -187,12 +187,12 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
             var botMsg = new ChatMessage(input.ThreadId, "", user.Id, TypeMsg.Bot);
 
             context.ChatMessage.Add(userMsg);
-            context.ChatMessage.Add(botMsg);    
+            context.ChatMessage.Add(botMsg);
 
             await context.SaveChangesAsync(ct); // gera Ids
 
             // 3) chama IA (ollama)
-            var (answer, code) = await chatIAOrchestrator.AskAiAsync(input.ThreadId, userMsg.Content, ct);
+            var (answer, code) = await chatIAOrchestrator.AskAiAsync(input.ThreadId, userMsg.Content, input.Model, ct);
 
             // 4) atualiza placeholder bot
             botMsg.SetContent(answer.Data!); // se não tiver, mude Content setter ou crie método
@@ -213,12 +213,12 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
         }
     }
 
-    
-    
-    
+
+
+
     //-----------------------
 
-    
+
     private static bool TryParseCursor(string cursor, out DateTimeOffset createdAtUtc, out long id)
     {
         createdAtUtc = default;
@@ -242,5 +242,5 @@ public class ChatService(ApplicationDbContext context, IUserLoggedService userLo
         var utc = createdAt.ToUniversalTime();
         return $"{utc.UtcTicks}:{id}";
     }
-    
+
 }

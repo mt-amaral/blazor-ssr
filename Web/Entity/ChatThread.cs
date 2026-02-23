@@ -32,4 +32,5 @@ public class ChatThread
     
     public void UpdateAt() =>  UpdatedAt = DateTimeOffset.Now;
 
+    public void UpdateTitle(string title) => Title = title;
 }
