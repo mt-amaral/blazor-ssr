@@ -75,38 +75,9 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
 
         if (result.Succeeded)
         {
-            var dto = new LoginOutDto(
-                Id: 0,
-                FullName: "",  
-                Email: user.Email ?? request.Email
-            );
-
-            return (new Response<LoginOutDto?>(dto, "OK"), 200);
+            return (new Response<LoginOutDto?>(null, ""), 200);
         }
-
-        if (result.RequiresTwoFactor)
-        {
-            var dto = new LoginOutDto(
-                Id: 0,
-                FullName: "",
-                Email: user.Email ?? request.Email,
-                RequiresTwoFactor: true
-            );
-            
-            return (new Response<LoginOutDto?>(dto, "Requer 2FA"), 200);
-        }
-
-        if (result.IsLockedOut)
-        {
-            var dto = new LoginOutDto(
-                Id: 0,
-                FullName: "",
-                Email: user.Email ?? request.Email,
-                IsLockedOut: true
-            );
-
-            return (new Response<LoginOutDto?>(dto, "Conta bloqueada"), 200);
-        }
+        
 
         return (new Response<LoginOutDto?>(null, "Credenciais inválidas"), 400);
     }
@@ -152,6 +123,24 @@ public class AccountService(ApplicationDbContext context, UserManager<User> user
                 errors: new List<string> { ex.Message }
             );
             return (errorResponse, 500);
+        }
+    }
+    
+    
+    public async Task<(Response<UserOutDto?>, short)> GetUserByIdAsync(long id, CancellationToken ct)
+    {
+        try
+        {
+            var user = await context.Users.AsNoTracking().FirstOrDefaultAsync(x => x.Id == id, ct);
+            if (user is null) return (new Response<UserOutDto?>(null, "Usuário não encontrado."), 404);
+            
+            var reponse = new UserOutDto(user.Id, user.UserName!, user.Email!);
+            return (new Response<UserOutDto?>(reponse, null), 200);
+            
+        }
+        catch (Exception ex)
+        {
+            return (new Response<UserOutDto?>(null, "Erro ou consultar usuario"), 500);
         }
     }
     

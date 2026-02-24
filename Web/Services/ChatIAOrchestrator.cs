@@ -20,7 +20,7 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
     private readonly IChatCompletionService _chat;
 
     public ChatIAOrchestrator(
-        Kernel kernel, // O Kernel já deve vir com TODOS os plugins registrados via DI
+        Kernel kernel,
         ApplicationDbContext context,
         IUserLoggedService userLoggedService,
         IChatCompletionService chat)
@@ -59,11 +59,6 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
                 .ToListAsync(ct);
 
             var history = new ChatHistory();
-
-            // Gerar descrição dinâmica das ferramentas disponíveis
-            //var availableToolsDescription = BuildAvailableToolsDescription();
-
-            // ✅ Prompt aprimorado para conversas humanizadas com suporte a ferramentas
             var systemPrompt = _context.ChatSettings.AsNoTracking().FirstOrDefault()!.Content;
 
             history.AddSystemMessage(systemPrompt);
@@ -78,154 +73,19 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
 
             var settings = new OpenAIPromptExecutionSettings
             {
-                // ⚠️ IMPORTANTE: None() faz a IA NUNCA chamar ferramentas automaticamente
-                // A IA só retorna JSON de ferramentas quando explicitamente instruída pelo usuário
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             };
 
             var result = await _chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
-
-            // esse codigo é novo 
-            // Cria dinamicamente OllamaChatCompletionService com o modelo selecionado
-            //var modelDescription = model.GetDescription();
-            //var dynamicChatService = new OllamaChatCompletionService(
-            //    modelId: modelDescription,
-            //    endpoint: new Uri("http://localhost:11434")
-            //    
-            //);
-            //
-            //var result = await dynamicChatService.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
-
+            
             var content = result?.Content ?? "";
 
-            // ✅ Execução Dinâmica de Ferramentas (Desacoplado)
-            /*if (TryParseToolJson(content, out var pluginName, out var functionName, out var kernelArgs))
-            {
-                try
-                {
-                    // Deixa o Semantic Kernel encontrar o plugin e executar
-                    var toolResult = await _kernel.InvokeAsync(pluginName, functionName, kernelArgs, ct);
-                    var toolText = toolResult?.GetValue<string>() ?? "";
-
-                    // Padronização simples de retorno
-                    if (toolText.StartsWith("ERR:", StringComparison.OrdinalIgnoreCase))
-                        return (new Response<string?>(toolText, ""), 400);
-
-                    return (new Response<string?>(toolText, ""), 200);
-                }
-                catch (Exception ex)
-                {
-                    // Pode capturar exceções específicas do SK caso a função não exista
-                    return (new Response<string?>($"Falha ao executar {pluginName}.{functionName}: {ex.Message}", ""), 400);
-                }
-            }*/
-
-            // Resposta normal sem ferramentas
+ 
             return (new Response<string?>(content, ""), 200);
         }
         catch (Exception ex)
         {
             return (new Response<string?>(null, "Erro na IA ou Orquestração: " + ex.Message), 500);
-        }
-    }
-
-    /// <summary>
-    /// Constrói uma descrição textual das ferramentas disponíveis no kernel
-    /// </summary>
-    private string BuildAvailableToolsDescription()
-    {
-        try
-        {
-            var plugins = _kernel.Plugins;
-            if (!plugins.Any())
-                return "Nenhuma ferramenta disponível no momento.";
-
-            var sb = new System.Text.StringBuilder();
-
-            foreach (var plugin in plugins)
-            {
-                var pluginName = plugin.Name ?? "Unknown";
-                sb.AppendLine($"\n📌 {pluginName}:");
-
-                foreach (var function in plugin)
-                {
-                    var funcName = function.Name;
-                    var funcDesc = function.Description ?? "Sem descrição";
-                    sb.AppendLine($"   • {funcName}: {funcDesc}");
-                }
-            }
-
-            return sb.ToString();
-        }
-        catch
-        {
-            return "Ferramentas disponíveis no kernel.";
-        }
-    }
-
-    /// <summary>
-    /// Faz o parse de qualquer chamada de ferramenta no formato {"plugin":"X","function":"Y","parameters":{...}}
-    /// </summary>
-    private static bool TryParseToolJson(
-        string content,
-        out string pluginName,
-        out string functionName,
-        out KernelArguments kernelArgs)
-    {
-        pluginName = string.Empty;
-        functionName = string.Empty;
-        kernelArgs = new KernelArguments();
-
-        content = (content ?? "").Trim();
-        if (!content.StartsWith("{") || !content.EndsWith("}"))
-            return false;
-
-        try
-        {
-            using var doc = JsonDocument.Parse(content);
-            var root = doc.RootElement;
-
-            if (!root.TryGetProperty("plugin", out var pluginElement) ||
-                !root.TryGetProperty("function", out var functionElement))
-            {
-                // Se estiver usando formato antigo do OpenAI {"name":"plugin.funcao"}, tenta adaptar:
-                if (root.TryGetProperty("name", out var nameElement))
-                {
-                    var parts = nameElement.GetString()?.Split('.', 2);
-                    if (parts?.Length == 2)
-                    {
-                        pluginName = parts[0];
-                        functionName = parts[1];
-                    }
-                    else return false;
-                }
-                else return false;
-            }
-            else
-            {
-                pluginName = pluginElement.GetString() ?? "";
-                functionName = functionElement.GetString() ?? "";
-            }
-
-            if (string.IsNullOrWhiteSpace(pluginName) || string.IsNullOrWhiteSpace(functionName))
-                return false;
-
-            // Extrai parâmetros dinamicamente
-            if (root.TryGetProperty("parameters", out var p) && p.ValueKind == JsonValueKind.Object)
-            {
-                foreach (var prop in p.EnumerateObject())
-                {
-                    kernelArgs[prop.Name] = prop.Value.ValueKind == JsonValueKind.String
-                        ? prop.Value.GetString()
-                        : prop.Value.GetRawText();
-                }
-            }
-
-            return true;
-        }
-        catch
-        {
-            return false;
         }
     }
 }

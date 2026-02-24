@@ -82,11 +82,8 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-// IA local - Agora criada dinamicamente em ChatIAOrchestrator.AskAiAsync
-// o modelo é selecionado pelo usuário no componente ChatMain.razor
-// Registramos uma instância padrão para configurar as dependências do SK
 builder.Services.AddOllamaChatCompletion(
-    modelId: "qwen2.5:3b", // dummy - será sobrescrito dinamicamente
+    modelId: "qwen2.5:3b", 
     endpoint: new Uri("http://localhost:11434")
 );
 
@@ -117,7 +114,6 @@ foreach (var pluginType in pluginTypes)
 builder.Services.AddScoped<Kernel>(sp =>
 {
     var kernelBuilder = Kernel.CreateBuilder();
-
     // Register all IPlugin implementations dynamically
     foreach (var pluginType in pluginTypes)
     {
@@ -127,7 +123,6 @@ builder.Services.AddScoped<Kernel>(sp =>
             kernelBuilder.Plugins.AddFromObject(pluginInstance, pluginInstance.PluginName);
         }
     }
-
     return kernelBuilder.Build();
 });
 
@@ -216,6 +211,10 @@ var app = builder.Build();
 // Pipeline
 if (app.Environment.IsDevelopment())
 {
+    // Log information
+    var logger = app.Services.GetRequiredService<ILogger<Program>>();
+    logger.LogInformation("Application started in {Environment} environment", app.Environment.EnvironmentName);
+        
     app.UseCors("CorsDev");
     app.UseMigrationsEndPoint();
     app.UseSwagger();
