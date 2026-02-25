@@ -17,18 +17,18 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
     private readonly Kernel _kernel;
     private readonly ApplicationDbContext _context;
     private readonly IUserLoggedService _userLoggedService;
-    private readonly IChatCompletionService _chat;
+    private readonly IServiceProvider _serviceProvider;
 
     public ChatIAOrchestrator(
         Kernel kernel,
         ApplicationDbContext context,
         IUserLoggedService userLoggedService,
-        IChatCompletionService chat)
+        IServiceProvider serviceProvider)
     {
         _kernel = kernel;
         _context = context;
         _userLoggedService = userLoggedService;
-        _chat = chat;
+        _serviceProvider = serviceProvider;
     }
 
     public async Task<(Response<string?>, short)> AskAiAsync(
@@ -76,11 +76,16 @@ public class ChatIAOrchestrator : IChatIAOrchestrator
                 FunctionChoiceBehavior = FunctionChoiceBehavior.Auto()
             };
 
-            var result = await _chat.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
-            
+            // Obter o serviço de chat correto baseado no modelo selecionado
+            var modelId = model.GetDescription();
+            var chatService = _serviceProvider.GetKeyedService<IChatCompletionService>(modelId)
+                ?? throw new InvalidOperationException($"Serviço de chat para o modelo '{modelId}' não foi registrado.");
+
+            var result = await chatService.GetChatMessageContentAsync(history, executionSettings: settings, kernel: _kernel, cancellationToken: ct);
+
             var content = result?.Content ?? "";
 
- 
+
             return (new Response<string?>(content, ""), 200);
         }
         catch (Exception ex)

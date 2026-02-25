@@ -4,12 +4,16 @@ using Microsoft.AspNetCore.DataProtection;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.SemanticKernel;
+using Microsoft.SemanticKernel.ChatCompletion;
+using Microsoft.SemanticKernel.Connectors.Ollama;
 using MudBlazor;
 using MudBlazor.Services;
 using Newtonsoft.Json;
 using Web;
 using Web.Context;
+using Web.Entity.Enum;
 using Web.Entity.Identity;
+using Web.Extensions;
 using Web.Middleware;
 using Web.Pages;
 using Web.Plugins;
@@ -82,10 +86,19 @@ builder.Services.ConfigureApplicationCookie(options =>
     };
 });
 
-builder.Services.AddOllamaChatCompletion(
-    modelId: "qwen2.5:3b", 
-    endpoint: new Uri("http://localhost:11434")
-);
+// Registro dinâmico dos modelos como serviços nomeados
+var models = Enum.GetValues<Models>();
+foreach (var model in models)
+{
+    var modelId = model.GetDescription(); // ex: "qwen2.5:3b"
+    builder.Services.AddKeyedSingleton<IChatCompletionService>(modelId, (sp, key) =>
+    {
+        var kernel = Kernel.CreateBuilder()
+            .AddOllamaChatCompletion(modelId, new Uri("http://localhost:11434"))
+            .Build();
+        return kernel.GetRequiredService<IChatCompletionService>();
+    });
+}
 
 builder.Services.AddLogging(x => x.AddConsole().SetMinimumLevel(LogLevel.Trace));
 
@@ -214,7 +227,7 @@ if (app.Environment.IsDevelopment())
     // Log information
     var logger = app.Services.GetRequiredService<ILogger<Program>>();
     logger.LogInformation("Application started in {Environment} environment", app.Environment.EnvironmentName);
-        
+
     app.UseCors("CorsDev");
     app.UseMigrationsEndPoint();
     app.UseSwagger();
